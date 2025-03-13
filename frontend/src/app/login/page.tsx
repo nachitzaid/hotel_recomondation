@@ -1,0 +1,70 @@
+// src/app/pages/login.tsx
+"use client";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const router = useRouter();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Logique de connexion ici...
+    console.log("Email:", email, "Password:", password);
+  };
+
+  const handleSignupRedirect = () => {
+    router.push('/signup'); // Redirection vers la page d'inscription
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-semibold text-center mb-6">Login</h1>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <button type="submit" className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600">
+            Login
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <button onClick={handleSignupRedirect} className="text-blue-500 hover:text-blue-600">
+              <b>Sign up here</b>
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+    
+  );
+};
+
+export default Login;
