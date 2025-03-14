@@ -11,7 +11,9 @@ export default function DataPage() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <HotelDashboardHeader />
+      <HotelDashboardHeader onSearch={function (searchParams: any): void {
+        throw new Error('Function not implemented.');
+      } } />
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-4">Résultats pour: {destination}</h1>
         
