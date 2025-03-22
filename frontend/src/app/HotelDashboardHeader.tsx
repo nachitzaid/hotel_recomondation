@@ -1,19 +1,19 @@
 "use client"
 
-import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Search, MapPin, Calendar, User, LogIn, Heart } from "lucide-react"
+import Link from "next/link"
+import { Search, MapPin, Calendar, User, LogIn, Heart, Trophy, Menu, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface HotelDashboardHeaderProps {
   onSearch: (searchParams: any) => void
 }
 
-const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch }) => {
+const HotelDashboardHeader = ({ onSearch }: HotelDashboardHeaderProps) => {
   const [destination, setDestination] = useState("")
   const [dates, setDates] = useState("")
   const [guests, setGuests] = useState("")
-  const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleSearchClick = () => {
     onSearch({ destination, dates, guests })
@@ -22,40 +22,93 @@ const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch })
   return (
     <header className="w-full">
       {/* Top navigation bar */}
-      <div className="bg-gradient-to-r from-blue-700 to-blue-500 text-white p-4 shadow-lg">
+      <div className="bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white p-4 shadow-lg">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">TravelBook</h1>
-          <div className="flex items-center space-x-6">
+          <Link href="/" className="flex items-center">
+            <Trophy className="h-6 w-6 mr-2" />
+            <h1 className="text-2xl font-bold tracking-tight">WorldCup Hotels</h1>
+          </Link>
+
+          {/* Mobile menu button */}
+          <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+
+          {/* Desktop navigation */}
+          <div className="hidden md:flex items-center space-x-6">
             <nav>
               <ul className="flex space-x-6">
-                <li className="font-medium hover:text-blue-200 transition-colors">Hôtels</li>
+                <li className="font-medium hover:text-blue-200 transition-colors">
+                  <Link href="/hotels">Hôtels</Link>
+                </li>
+                <li className="font-medium hover:text-blue-200 transition-colors">
+                  <Link href="/stadiums">Stades</Link>
+                </li>
+                <li className="font-medium hover:text-blue-200 transition-colors">
+                  <Link href="/packages">Forfaits</Link>
+                </li>
                 <li className="hover:text-blue-200 transition-colors flex items-center">
                   <Heart className="mr-1 h-4 w-4" />
-                  Favorites
+                  <Link href="/favorites">Favoris</Link>
                 </li>
               </ul>
             </nav>
-            <button
-              className="flex items-center bg-white text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-md transition-colors font-medium"
-              onClick={() => router.push("/login")} // Redirection vers login.tsx
-            >
-              <LogIn className="mr-2 h-4 w-4" />
-              <span>Login</span>
-            </button>
+            <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" asChild>
+              <Link href="/login" className="flex items-center">
+                <LogIn className="mr-2 h-4 w-4" />
+                <span>Connexion</span>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
 
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-red-800 text-white">
+          <nav className="container mx-auto py-4">
+            <ul className="space-y-4">
+              <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
+                <Link href="/hotels">Hôtels</Link>
+              </li>
+              <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
+                <Link href="/stadiums">Stades</Link>
+              </li>
+              <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
+                <Link href="/packages">Forfaits</Link>
+              </li>
+              <li className="hover:text-blue-200 transition-colors flex items-center px-4 py-2">
+                <Heart className="mr-1 h-4 w-4" />
+                <Link href="/favorites">Favoris</Link>
+              </li>
+              <li className="px-4 py-2">
+                <Button variant="secondary" size="sm" className="w-full bg-white text-red-700 hover:bg-red-50" asChild>
+                  <Link href="/login" className="flex items-center justify-center">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span>Connexion</span>
+                  </Link>
+                </Button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
+
       {/* Hero section with background image */}
       <div
         className="relative bg-cover bg-center h-80"
-        style={{ backgroundImage: "url('/placeholder.svg?height=400&width=1200')" }}
+        style={{
+          backgroundImage: "url('/placeholder.svg?height=400&width=1200&text=World+Cup+2030')",
+          backgroundPosition: "center 30%",
+        }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/30"></div>
         <div className="relative container mx-auto h-full flex flex-col justify-center items-center text-white px-4">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">Trouvez l'hôtel parfait pour votre voyage</h2>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">
+            Trouvez votre hébergement pour la Coupe du Monde
+          </h2>
           <p className="text-xl md:text-2xl mb-8 text-center max-w-3xl">
-            Comparez les prix et trouvez les meilleures offres pour votre prochain séjour
+            Espagne · Portugal · Maroc · Juin-Juillet 2030
           </p>
         </div>
       </div>
@@ -68,7 +121,7 @@ const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch })
               <MapPin className="text-blue-500 mr-2" />
               <input
                 type="text"
-                placeholder="Où souhaitez-vous aller?"
+                placeholder="Ville ou stade"
                 className="w-full outline-none bg-transparent"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -78,7 +131,7 @@ const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch })
               <Calendar className="text-blue-500 mr-2" />
               <input
                 type="text"
-                placeholder="03/12/2025 - 10/12/2025"
+                placeholder="Dates du séjour"
                 className="w-full outline-none bg-transparent"
                 value={dates}
                 onChange={(e) => setDates(e.target.value)}
@@ -88,19 +141,16 @@ const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch })
               <User className="text-blue-500 mr-2" />
               <input
                 type="text"
-                placeholder="2 adultes, 0 enfant"
+                placeholder="Nombre de voyageurs"
                 className="w-full outline-none bg-transparent"
                 value={guests}
                 onChange={(e) => setGuests(e.target.value)}
               />
             </div>
-            <button
-              className="w-full md:w-1/6 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition-colors font-medium"
-              onClick={handleSearchClick}
-            >
+            <Button className="w-full md:w-1/6" onClick={handleSearchClick}>
               <Search className="mr-2" size={20} />
               <span>Rechercher</span>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -109,3 +159,4 @@ const HotelDashboardHeader: React.FC<HotelDashboardHeaderProps> = ({ onSearch })
 }
 
 export default HotelDashboardHeader
+
