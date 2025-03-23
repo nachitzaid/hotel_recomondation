@@ -26,16 +26,16 @@ CORS(app)
 # Route pour afficher les hôtels
 @app.route("/hotels", methods=["GET"])
 def get_hotels():
-    hotels = list(hotels_collection.find({}, {"_id": 0})).limit(2)  # Ne pas renvoyer l'ID MongoDB
+    hotels = list(hotels_collection.find({}, {"_id": 0}))  # Ne pas renvoyer l'ID MongoDB
     if not hotels:
         return jsonify({"message": "Aucun hôtel trouvé"}), 404
     return jsonify(hotels)
 
-# Route pour enregistrer un nouvel utilisateur
+## Route pour enregistrer un nouvel utilisateur
 @app.route("/signup", methods=["POST"])
 def signup():
     user_data = request.json  # Récupère les données envoyées par le frontend
-    email = user_data.get("email")
+    email = user_data.get("email").lower()  # Convertir l'email en minuscule pour éviter les doublons
     password = user_data.get("password")
 
     # Vérification si l'email existe déjà dans la base de données des utilisateurs
@@ -45,20 +45,25 @@ def signup():
     # Hachage du mot de passe avant de l'enregistrer
     hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
 
+    # Définition du rôle par défaut ("user")
+    role = "user"
+
     # Enregistrement de l'utilisateur dans la base de données des utilisateurs
     users_collection.insert_one({
         "firstName": user_data.get("firstName"),
         "phone": user_data.get("phone"),
         "email": email,
-        "password": hashed_password  # Stockage du mot de passe haché
+        "password": hashed_password,  # Stockage du mot de passe haché
+        "role": role  # Ajout du rôle par défaut
     })
+    
     return jsonify({"message": "Utilisateur créé avec succès"}), 201
 
-# Route pour la connexion (authentification)
+
 @app.route("/login", methods=["POST"])
 def login():
     user_data = request.json
-    email = user_data.get("email").lower()  # Convertir en minuscule
+    email = user_data.get("email").lower()
     password = user_data.get("password")
 
     print("Requête reçue:", user_data)  # Vérifier les données reçues
@@ -75,8 +80,14 @@ def login():
         return jsonify({"message": "Email ou mot de passe incorrect"}), 400
 
     print("Connexion réussie !")  # Confirmer la connexion réussie
-    return jsonify({"message": "Connexion réussie"}), 200
 
+    # Retourner les informations de l'utilisateur, y compris son rôle
+    return jsonify({
+        "message": "Connexion réussie",
+        "role": user.get("role", "user"),  # Assure que le rôle est bien renvoyé
+        "email": user["email"],
+        "firstName": user["firstName"]
+    }), 200
 
 
 if __name__ == "__main__":

@@ -1,40 +1,36 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react"
 
 export default function Login() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  })
-  const [errors, setErrors] = useState({
-    email: "",
-    password: "",
-  })
+  const [formData, setFormData] = useState({ email: "", password: "" })
+  const [errors, setErrors] = useState({ email: "", password: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
+  useEffect(() => {
+    const role = sessionStorage.getItem("userRole")
+    if (role === "admin") {
+      router.push("/admin")
+    } else if (role === "user") {
+      router.push("/dashboard")
+    }
+  }, [])
+
   const validateForm = () => {
     let isValid = true
-    const newErrors = {
-      email: "",
-      password: "",
-    }
+    const newErrors = { email: "", password: "" }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
       newErrors.email = "Veuillez entrer une adresse email valide"
       isValid = false
     }
-
-    // Password validation
     if (formData.password.length < 1) {
       newErrors.password = "Le mot de passe est requis"
       isValid = false
@@ -46,34 +42,41 @@ export default function Login() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
-    if (!validateForm()) {
-      return
-    }
+    if (!validateForm()) return
 
     setIsSubmitting(true)
 
     try {
       const response = await fetch("http://localhost:5000/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
 
       if (response.ok) {
-        router.push("http://localhost:3000/")
+        const data = await response.json()
+        console.log("Réponse du serveur:", data) // Affiche tout l'objet retourné par le serveur
+        console.log("Role récupéré:", data.role) // Affiche spécifiquement le rôle
+        sessionStorage.setItem("userRole", data.role)
+        sessionStorage.setItem("userEmail", formData.email)
+      
+        setTimeout(() => {
+          if (data.role === "admin") {
+            console.log("Redirection après 1 minute vers /admin")
+            router.push("/admin")
+          } else {
+            console.log("Redirection après 1 minute vers /dashboard")
+            router.push("/dashboard")
+          }
+        }, 6) // Pause de 1 minute
       } else {
         const data = await response.json()
+        console.log("Erreur de connexion:", data)
         alert(data.message)
       }
     } catch (error) {
@@ -94,9 +97,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Mail className="h-5 w-5" />
@@ -106,7 +107,9 @@ export default function Login() {
                 name="email"
                 type="email"
                 placeholder="john.doe@example.com"
-                className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300"}`}
+                className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                }`}
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -117,12 +120,8 @@ export default function Login() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Mot de passe
-              </label>
-              <a href="#" className="text-xs text-blue-600 hover:text-blue-500 underline">
-                Mot de passe oublié?
-              </a>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
+              <a href="#" className="text-xs text-blue-600 hover:text-blue-500 underline">Mot de passe oublié?</a>
             </div>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -133,63 +132,25 @@ export default function Login() {
                 name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className={`w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300"}`}
+                className={`w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                }`}
                 value={formData.password}
                 onChange={handleChange}
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium flex items-center justify-center"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Connexion en cours...
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                Se connecter
-                <LogIn className="ml-2 h-4 w-4" />
-              </div>
-            )}
+          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium flex items-center justify-center" disabled={isSubmitting}>
+            {isSubmitting ? "Connexion en cours..." : "Se connecter"}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-sm">
-          <p>
-            Vous n'avez pas de compte?{" "}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500 underline">
-              S'inscrire
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   )
 }
-
