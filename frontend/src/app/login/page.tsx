@@ -3,8 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -60,24 +59,24 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Réponse du serveur:", data) // Affiche tout l'objet retourné par le serveur
-        console.log("Role récupéré:", data.role) // Affiche spécifiquement le rôle
-        sessionStorage.setItem("userRole", data.role)
+        console.log("Réponse du serveur:", data)
+
+        // Stocker les informations utilisateur
+        sessionStorage.setItem("userRole", data.user.role)
         sessionStorage.setItem("userEmail", formData.email)
-      
-        setTimeout(() => {
-          if (data.role === "admin") {
-            console.log("Redirection après 1 minute vers /admin")
-            router.push("/admin")
-          } else {
-            console.log("Redirection après 1 minute vers /dashboard")
-            router.push("/dashboard")
-          }
-        }, 6) // Pause de 1 minute
+
+        // Redirection immédiate basée sur le rôle
+        if (data.user.role === "admin") {
+          console.log("Redirection vers /admin")
+          router.push("/admin")
+        } else {
+          console.log("Redirection vers /dashboard")
+          router.push("/dashboard")
+        }
       } else {
         const data = await response.json()
         console.log("Erreur de connexion:", data)
-        alert(data.message)
+        alert(data.message || "Identifiants incorrects")
       }
     } catch (error) {
       console.error("Erreur lors de la connexion", error)
@@ -97,7 +96,9 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Mail className="h-5 w-5" />
@@ -120,8 +121,12 @@ export default function Login() {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
-              <a href="#" className="text-xs text-blue-600 hover:text-blue-500 underline">Mot de passe oublié?</a>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Mot de passe
+              </label>
+              <a href="#" className="text-xs text-blue-600 hover:text-blue-500 underline">
+                Mot de passe oublié?
+              </a>
             </div>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -139,14 +144,22 @@ export default function Login() {
                 onChange={handleChange}
                 required
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+              >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium flex items-center justify-center" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium flex items-center justify-center"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Connexion en cours..." : "Se connecter"}
           </button>
         </form>
@@ -154,3 +167,4 @@ export default function Login() {
     </div>
   )
 }
+

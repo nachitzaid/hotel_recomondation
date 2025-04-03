@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/app/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context"
 import { User, LogOut, Settings, Hotel, Calendar, CreditCard, UsersIcon, Menu, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"

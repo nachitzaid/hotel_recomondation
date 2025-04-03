@@ -2,20 +2,14 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Search, MapPin, Calendar, User, LogIn, Heart, Trophy, Menu, X, LogOut, UserCircle } from "lucide-react"
+import { Search, MapPin, Calendar, User, LogIn, Heart, Trophy, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface HotelDashboardHeaderProps {
-  onSearch: (searchParams: any) => void;
-  isLoggedIn?: boolean;
-  username?: string;
+  onSearch: (searchParams: any) => void
 }
 
-const HotelDashboardHeader = ({ 
-  onSearch, 
-  isLoggedIn = false, 
-  username = "" 
-}: HotelDashboardHeaderProps) => {
+const HotelDashboardHeader = ({ onSearch }: HotelDashboardHeaderProps) => {
   const [destination, setDestination] = useState("")
   const [dates, setDates] = useState("")
   const [guests, setGuests] = useState("")
@@ -57,35 +51,14 @@ const HotelDashboardHeader = ({
                   <Heart className="mr-1 h-4 w-4" />
                   <Link href="/favorites">Favoris</Link>
                 </li>
-                {isLoggedIn && (
-                  <li className="font-medium hover:text-blue-200 transition-colors">
-                    <Link href="/reservations">Mes Réservations</Link>
-                  </li>
-                )}
               </ul>
             </nav>
-            
-            {isLoggedIn ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                  <UserCircle className="mr-1 h-5 w-5" />
-                  <span className="font-medium">{username}</span>
-                </div>
-                <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" asChild>
-                  <Link href="/logout" className="flex items-center">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" asChild>
-                <Link href="/login" className="flex items-center">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  <span>Connexion</span>
-                </Link>
-              </Button>
-            )}
+            <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" asChild>
+              <Link href="/login" className="flex items-center">
+                <LogIn className="mr-2 h-4 w-4" />
+                <span>Connexion</span>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -108,37 +81,14 @@ const HotelDashboardHeader = ({
                 <Heart className="mr-1 h-4 w-4" />
                 <Link href="/favorites">Favoris</Link>
               </li>
-              {isLoggedIn && (
-                <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
-                  <Link href="/reservations">Mes Réservations</Link>
-                </li>
-              )}
-              
-              {isLoggedIn ? (
-                <>
-                  <li className="px-4 py-2 flex items-center">
-                    <UserCircle className="mr-2 h-5 w-5" />
-                    <span className="font-medium">{username}</span>
-                  </li>
-                  <li className="px-4 py-2">
-                    <Button variant="secondary" size="sm" className="w-full bg-white text-red-700 hover:bg-red-50" asChild>
-                      <Link href="/logout" className="flex items-center justify-center">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Déconnexion</span>
-                      </Link>
-                    </Button>
-                  </li>
-                </>
-              ) : (
-                <li className="px-4 py-2">
-                  <Button variant="secondary" size="sm" className="w-full bg-white text-red-700 hover:bg-red-50" asChild>
-                    <Link href="/login" className="flex items-center justify-center">
-                      <LogIn className="mr-2 h-4 w-4" />
-                      <span>Connexion</span>
-                    </Link>
-                  </Button>
-                </li>
-              )}
+              <li className="px-4 py-2">
+                <Button variant="secondary" size="sm" className="w-full bg-white text-red-700 hover:bg-red-50" asChild>
+                  <Link href="/login" className="flex items-center justify-center">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span>Connexion</span>
+                  </Link>
+                </Button>
+              </li>
             </ul>
           </nav>
         </div>
@@ -209,3 +159,4 @@ const HotelDashboardHeader = ({
 }
 
 export default HotelDashboardHeader
+

@@ -16,26 +16,45 @@ export interface User {
     images?: string[]
   }
   
-  export interface Hotel {
-    _id: string
-    name: string
-    location: string
-    city: string
-    description: string
-    rating: number
-    price: number
-    image: string
-    amenities: string[]
-    rooms: Room[]
-  
-    // Champs spécifiques à la Coupe du Monde
-    distance_to_venues?: Record<string, number>
-    world_cup_package?: boolean
-    match_day_shuttle?: boolean
-    fan_zone_nearby?: boolean
-    public_transport?: string[]
-  }
-  
+  // Updated Hotel interface to fix all TypeScript errors
+export interface Hotel {
+  id: number | string;
+  name: string;
+  location: string;
+  description: string;
+  image: string;
+  price: number;
+  rating: string; // Changed from number to string to match code usage
+  status: "active" | "inactive" | "pending"; // Strictly typed string literal union
+  verified: boolean;
+  pendingApproval: boolean;
+  rooms: number;
+  bookings: number;
+  revenue: string;
+  // Optional properties
+  amenities?: string[];
+  country?: string;
+  originalPrice?: number;
+  deal?: boolean;
+  worldCupVenue?: boolean;
+  distanceToStadium?: string;
+  matchesHosted?: string[];
+}
+
+// Add this interface to help with form state typing
+export interface HotelFormState {
+  name: string;
+  location: string;
+  rooms: string; // String for form input
+  price: string; // String for form input
+  status: "active" | "inactive" | "pending";
+  verified: boolean;
+  description: string;
+  image: string;
+  rating: string;
+  pendingApproval: boolean;
+}
+
   export interface Match {
     _id: string
     team1: string

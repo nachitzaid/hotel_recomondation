@@ -1,6 +1,6 @@
 // data.tsx
 import { useRouter } from 'next/router';
-import HotelDashboardHeader from './HotelDashboardHeader';
+import HotelDashboardHeader from '../components/home/HotelDashboardHeader';
 
 export default function DataPage() {
   const router = useRouter();
