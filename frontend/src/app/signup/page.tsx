@@ -1,11 +1,10 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, User, Phone, Mail, Lock, ArrowRight } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -23,6 +22,7 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const { signup } = useAuth()
 
   const validateForm = () => {
     let isValid = true
@@ -73,7 +73,7 @@ export default function Signup() {
       [name]: value,
     }))
   }
-
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
@@ -84,19 +84,14 @@ export default function Signup() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("http://localhost:5000/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
+      // Utiliser la fonction signup du hook useAuth
+      const result = await signup(formData)
 
-      if (response.ok) {
+      if (result.success) {
+        // Rediriger vers la page de connexion après inscription réussie
         router.push("/login")
       } else {
-        const data = await response.json()
-        alert(data.message)
+        alert(result.message || "Erreur lors de l'inscription")
       }
     } catch (error) {
       console.error("Erreur lors de l'inscription", error)
@@ -326,4 +321,3 @@ export default function Signup() {
     </div>
   )
 }
-

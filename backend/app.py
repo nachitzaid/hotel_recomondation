@@ -7,13 +7,18 @@ from dotenv import load_dotenv
 from bson import ObjectId
 from bson.errors import InvalidId
 from functools import wraps
+from datetime import datetime 
+# Ajouter ce code au début du fichier, après les imports
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # Chargement des variables d'environnement
 load_dotenv()
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+# Remplacez votre configuration CORS actuelle par celle-ci
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Configuration MongoDB
 def get_mongo_client(uri):
@@ -64,61 +69,149 @@ def validate_json(*required_fields):
         return wrapper
     return decorator
 
-# Routes d'authentification
+@app.route("/test", methods=["GET"])
+def test():
+    return jsonify({"status": "ok", "message": "Le serveur fonctionne correctement"}), 200
 @app.route("/signup", methods=["POST"])
-@validate_json("email", "password", "firstName", "phone")
 def signup():
-    data = request.get_json()
-    email = data["email"].lower()
-    
-    if users_collection.find_one({"email": email}):
-        return jsonify({"error": "Email déjà utilisé"}), 409
+    try:
+        # Validation des données reçues
+        if not request.is_json:
+            return jsonify({
+                "success": False, 
+                "error": "Données JSON requises"
+            }), 400
 
-    hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
-    
-    user_data = {
-        "firstName": data["firstName"],
-        "phone": data["phone"],
-        "email": email,
-        "password": hashed_password,
-        "role": "user",
-        "status": "active",
-        "registeredAt": datetime.now().isoformat()
-    }
-    
-    result = users_collection.insert_one(user_data)
-    return jsonify({
-        "message": "Utilisateur créé avec succès",
-        "userId": str(result.inserted_id)
-    }), 201
+        # Récupération des données
+        user_data = request.get_json()
+        
+        # Extraction et nettoyage des données
+        first_name = user_data.get("firstName", "").strip()
+        phone = user_data.get("phone", "").strip()
+        email = user_data.get("email", "").lower().strip()
+        password = user_data.get("password", "").strip()
 
-# Modify the login route to ensure consistent response format
+        # Validation des champs
+        if not all([first_name, phone, email, password]):
+            missing_fields = [
+                field for field, value in {
+                    "firstName": first_name, 
+                    "phone": phone, 
+                    "email": email, 
+                    "password": password
+                }.items() if not value
+            ]
+            return jsonify({
+                "success": False, 
+                "error": f"Champs requis manquants: {', '.join(missing_fields)}"
+            }), 400
+
+        # Vérification si l'email existe déjà
+        existing_user = users_collection.find_one({"email": email})
+        if existing_user:
+            return jsonify({
+                "success": False, 
+                "error": "Un compte avec cet email existe déjà"
+            }), 409
+
+        # Hachage du mot de passe
+        try:
+            hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
+        except Exception as hash_error:
+            print(f"Erreur de hachage du mot de passe : {hash_error}")
+            return jsonify({
+                "success": False, 
+                "error": "Erreur lors du traitement du mot de passe"
+            }), 500
+
+        # Préparation des données utilisateur
+        new_user = {
+            "firstName": first_name,
+            "phone": phone,
+            "email": email,
+            "password": hashed_password,
+            "role": "user",
+            "status": "active",
+            "createdAt": datetime.utcnow()
+        }
+
+        # Insertion dans la base de données
+        try:
+            result = users_collection.insert_one(new_user)
+            return jsonify({
+                "success": True, 
+                "message": "Inscription réussie",
+                "userId": str(result.inserted_id)
+            }), 201
+        except Exception as insert_error:
+            print(f"Erreur d'insertion : {insert_error}")
+            return jsonify({
+                "success": False, 
+                "error": "Erreur lors de l'enregistrement"
+            }), 500
+
+    except Exception as e:
+        print(f"Erreur critique lors de l'inscription : {e}")
+        traceback.print_exc()
+        return jsonify({
+            "success": False, 
+            "error": "Erreur serveur lors de l'inscription"
+        }), 500
+
 @app.route("/login", methods=["POST"])
-@validate_json("email", "password")
 def login():
-    data = request.get_json()
-    user = users_collection.find_one({"email": data["email"].lower()})
-    
-    if not user or not check_password_hash(user["password"], data["password"]):
-        return jsonify({"error": "Email ou mot de passe incorrect"}), 401
-    
-    # Convert ObjectId to string for JSON serialization
-    user_data = {
-        "_id": str(user["_id"]),
-        "firstName": user.get("firstName", ""),
-        "email": user.get("email", ""),
-        "phone": user.get("phone", ""),
-        "role": user.get("role", "user"),
-        "status": user.get("status", "active")
-    }
-    
-    return jsonify({
-        "message": "Connexion réussie",
-        "user": user_data
-    })
+    try:
+        # Validation des données reçues
+        if not request.is_json:
+            return jsonify({
+                "success": False, 
+                "error": "Données JSON requises"
+            }), 400
 
+        # Récupération des données
+        user_data = request.get_json()
+        
+        # Extraction et nettoyage des données
+        email = user_data.get("email", "").lower().strip()
+        password = user_data.get("password", "").strip()
 
+        # Validation des champs
+        if not email or not password:
+            return jsonify({
+                "success": False, 
+                "error": "Email et mot de passe requis"
+            }), 400
 
+        # Recherche de l'utilisateur
+        user = users_collection.find_one({"email": email})
+        
+        # Vérification de l'utilisateur et du mot de passe
+        if not user or not check_password_hash(user["password"], password):
+            return jsonify({
+                "success": False, 
+                "error": "Email ou mot de passe incorrect"
+            }), 401
+
+        # Préparer les données utilisateur à retourner
+        user_response = {
+            "success": True,
+            "message": "Connexion réussie",
+            "user": {
+                "email": user["email"],
+                "firstName": user["firstName"],
+                "role": user.get("role", "user")
+            }
+        }
+
+        return jsonify(user_response), 200
+
+    except Exception as e:
+        print(f"Erreur critique lors de la connexion : {e}")
+        traceback.print_exc()
+        return jsonify({
+            "success": False, 
+            "error": "Erreur serveur lors de la connexion"
+        }), 500
 # Routes pour les hôtels (public)
 @app.route("/hotels", methods=["GET"])
 @handle_errors
@@ -134,6 +227,32 @@ def get_users():
     for user in users:
         user["_id"] = str(user["_id"])
     return jsonify(users)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    app.logger.error(f"Erreur non gérée: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    return jsonify({
+        "success": False,
+        "error": str(e)
+    }), 500
+
+# Assurez-vous que toutes les réponses ont le header Content-Type: application/json
+@app.after_request
+def add_header(response):
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
+# Ajoutez ce code de débogage dans app.py
+@app.route("/test_db", methods=["GET"])
+def test_db():
+    try:
+        # Tester la connexion à la base de données
+        users_count = users_collection.count_documents({})
+        return jsonify({"success": True, "message": f"Connexion réussie, {users_count} utilisateurs trouvés"}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Erreur de connexion à MongoDB: {str(e)}"}), 500
 
 @app.route("/admin/users/<id>", methods=["GET"])
 @handle_errors
@@ -244,7 +363,7 @@ def update_hotel(id):
     updated_hotel["_id"] = str(updated_hotel["_id"])
     
     return jsonify(updated_hotel)
-    
+
 @app.route("/admin/hotels/<id>", methods=["DELETE"])
 @handle_errors
 def delete_hotel(id):
