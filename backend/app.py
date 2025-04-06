@@ -92,6 +92,7 @@ def signup():
         "userId": str(result.inserted_id)
     }), 201
 
+# Modify the login route to ensure consistent response format
 @app.route("/login", methods=["POST"])
 @validate_json("email", "password")
 def login():
@@ -101,14 +102,22 @@ def login():
     if not user or not check_password_hash(user["password"], data["password"]):
         return jsonify({"error": "Email ou mot de passe incorrect"}), 401
     
-    # Ne pas renvoyer le mot de passe dans la réponse
-    user["_id"] = str(user["_id"])
-    del user["password"]
+    # Convert ObjectId to string for JSON serialization
+    user_data = {
+        "_id": str(user["_id"]),
+        "firstName": user.get("firstName", ""),
+        "email": user.get("email", ""),
+        "phone": user.get("phone", ""),
+        "role": user.get("role", "user"),
+        "status": user.get("status", "active")
+    }
     
     return jsonify({
         "message": "Connexion réussie",
-        "user": user
+        "user": user_data
     })
+
+
 
 # Routes pour les hôtels (public)
 @app.route("/hotels", methods=["GET"])
@@ -166,10 +175,30 @@ def delete_user(id):
 @app.route("/admin/hotels", methods=["GET"])
 @handle_errors
 def admin_get_hotels():
-    hotels = list(hotels_collection.find({}))
-    for hotel in hotels:
+    # Récupérer les paramètres de pagination
+    limit = request.args.get('limit', type=int, default=10)  # Limite par défaut à 10
+    skip = request.args.get('skip', type=int, default=0)
+    
+    # Construire la requête avec pagination
+    query = hotels_collection.find({}).skip(skip).limit(limit)
+    
+    # Compter le nombre total de documents (sans pagination)
+    total_count = hotels_collection.count_documents({})
+    
+    # Convertir les ObjectId en str pour la sérialisation JSON
+    hotels = []
+    for hotel in query:
         hotel["_id"] = str(hotel["_id"])
-    return jsonify(hotels)
+        hotels.append(hotel)
+    
+    # Retourner les résultats avec métadonnées de pagination
+    return jsonify({
+        "hotels": hotels,
+        "total": total_count,
+        "page": skip // limit + 1 if limit > 0 else 1,
+        "limit": limit,
+        "pages": (total_count + limit - 1) // limit if limit > 0 else 1
+    })
 
 @app.route("/admin/hotels/<id>", methods=["GET"])
 @handle_errors
@@ -195,14 +224,27 @@ def create_hotel():
 @handle_errors
 def update_hotel(id):
     data = request.get_json()
+    
+    # Trouver l'hôtel avant la mise à jour
+    hotel = hotels_collection.find_one({"_id": ObjectId(id)})
+    
+    if not hotel:
+        return jsonify({"error": "Hôtel non trouvé"}), 404
+    
+    # Mettre à jour l'hôtel
     result = hotels_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": data}
     )
-    if result.matched_count == 0:
-        return jsonify({"error": "Hôtel non trouvé"}), 404
-    return jsonify({"message": "Hôtel mis à jour"})
-
+    
+    # Récupérer l'hôtel mis à jour
+    updated_hotel = hotels_collection.find_one({"_id": ObjectId(id)})
+    
+    # Convertir ObjectId en string
+    updated_hotel["_id"] = str(updated_hotel["_id"])
+    
+    return jsonify(updated_hotel)
+    
 @app.route("/admin/hotels/<id>", methods=["DELETE"])
 @handle_errors
 def delete_hotel(id):

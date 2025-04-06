@@ -2,24 +2,13 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import {
-  LayoutDashboard,
-  Hotel,
-  Calendar,
-  Users,
-  CreditCard,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Bell,
-  Search,
-} from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { LayoutDashboard, Hotel, Calendar, Users, CreditCard, Settings, LogOut, Trophy, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useAuth } from "@/hooks/use-auth"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,18 +29,44 @@ const SidebarItem = ({ icon, title, href, active }: SidebarItemProps) => (
   <Link
     href={href}
     className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-      active ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-500 hover:text-blue-700 hover:bg-blue-50"
+      active
+        ? "bg-gradient-to-r from-red-700/10 via-amber-600/10 to-green-700/10 text-amber-700 font-medium"
+        : "text-gray-500 hover:text-amber-700 hover:bg-amber-50"
     }`}
   >
     {icon}
     <span>{title}</span>
-    {active && <div className="ml-auto w-1.5 h-6 rounded-full bg-blue-700"></div>}
+    {active && (
+      <div className="ml-auto w-1.5 h-6 rounded-full bg-gradient-to-b from-red-700 via-amber-600 to-green-700"></div>
+    )}
   </Link>
 )
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, isLoading, isAdmin, logout } = useAuth()
+
+  // Redirect if not admin
+  useEffect(() => {
+    if (!isLoading && !isAdmin) {
+      router.push("/login")
+    }
+  }, [isLoading, isAdmin, router])
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      // La redirection est gérée dans la fonction logout
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error)
+    }
+  }
 
   const sidebarItems = [
     {
@@ -79,178 +94,166 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: "Paiements",
       href: "/admin/payments",
     },
-    {
-      icon: <Settings size={20} />,
-      title: "Paramètres",
-      href: "/admin/settings",
-    },
+    
   ]
 
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600"></div>
+      </div>
+    )
+  }
+
+  // If not admin and not loading, the useEffect will redirect
+  if (!isAdmin && !isLoading) {
+    return null
+  }
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar for desktop */}
-      <aside className="hidden md:flex flex-col w-64 border-r bg-white">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold text-blue-700">TravelBook</h1>
-          <p className="text-xs text-gray-500 mt-1">Administration</p>
+    <div className="flex min-h-screen flex-col">
+      <header className="flex items-center justify-between p-4 bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white shadow-md">
+        <div className="flex items-center">
+          <Trophy className="h-6 w-6 mr-2" />
+          <h1 className="text-xl font-bold">WorldCup Hotels - Admin</h1>
         </div>
-
-        <nav className="flex-1 px-3 space-y-1">
-          {sidebarItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              icon={item.icon}
-              title={item.title}
-              href={item.href}
-              active={pathname === item.href}
-            />
-          ))}
-        </nav>
-
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src="/placeholder.svg?height=40&width=40" />
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-gray-500">admin@travelbook.com</p>
-            </div>
-            <Button variant="ghost" size="icon" className="ml-auto">
-              <LogOut size={18} />
-            </Button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile sidebar */}
-      <div
-        className={`fixed inset-0 z-50 bg-black/50 md:hidden ${sidebarOpen ? "block" : "hidden"}`}
-        onClick={() => setSidebarOpen(false)}
-      ></div>
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 ease-in-out md:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h1 className="text-xl font-bold text-blue-700">TravelBook</h1>
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
-            <X size={20} />
-          </Button>
-        </div>
-
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {sidebarItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              icon={item.icon}
-              title={item.title}
-              href={item.href}
-              active={pathname === item.href}
-            />
-          ))}
-        </nav>
-
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src="/placeholder.svg?height=40&width=40" />
-              <AvatarFallback>AD</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-gray-500">admin@travelbook.com</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Top navigation */}
-        <header className="flex items-center justify-between p-4 bg-white border-b">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu size={20} />
-            </Button>
-            <div className="relative w-64 hidden md:block">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                className="w-full pl-8 pr-4 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell size={20} />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="max-h-80 overflow-y-auto">
-                  <DropdownMenuItem className="cursor-pointer">
-                    <div className="flex flex-col gap-1">
-                      <p className="font-medium">Nouvelle demande d'hôtel</p>
-                      <p className="text-xs text-gray-500">Grand Hôtel Paris a soumis une demande d'inscription</p>
-                      <p className="text-xs text-gray-400">Il y a 10 minutes</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <div className="flex flex-col gap-1">
-                      <p className="font-medium">Litige de réservation</p>
-                      <p className="text-xs text-gray-500">
-                        Un client a signalé un problème avec sa réservation #12345
-                      </p>
-                      <p className="text-xs text-gray-400">Il y a 2 heures</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <div className="flex flex-col gap-1">
-                      <p className="font-medium">Paiement en attente</p>
-                      <p className="text-xs text-gray-500">3 paiements nécessitent votre attention</p>
-                      <p className="text-xs text-gray-400">Il y a 1 jour</p>
-                    </div>
-                  </DropdownMenuItem>
+        <div className="flex items-center gap-4">
+          <span className="text-sm hidden md:inline-block">Connecté en tant qu'administrateur</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative flex items-center gap-2 text-white hover:bg-white/20">
+                <Avatar className="h-8 w-8 border-2 border-white">
+                  <AvatarImage src={user?.avatar || "/placeholder.svg?height=32&width=32"} />
+                  <AvatarFallback>{user?.firstName?.charAt(0) || "A"}</AvatarFallback>
+                </Avatar>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium">{user?.firstName || "Admin"}</p>
+                  <p className="text-xs opacity-80">{user?.email || "admin@worldcuphotels.com"}</p>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-center text-blue-600">
-                  Voir toutes les notifications
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                    <AvatarFallback>AD</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:inline text-sm font-medium">Admin</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">Profil</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Paramètres</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-red-600">Se déconnecter</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile">Profil</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/settings">Paramètres</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Se déconnecter
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+      <div className="flex flex-1">
+        {/* Sidebar pour desktop */}
+        <aside className="hidden md:flex flex-col w-64 border-r bg-white shadow-sm">
+          <div className="p-6 border-b">
+            <h2 className="text-lg font-semibold text-amber-800">Administration</h2>
+            <p className="text-xs text-gray-500 mt-1">Gestion de la plateforme</p>
           </div>
-        </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <nav className="flex-1 px-3 py-4 space-y-1">
+            {sidebarItems.map((item) => (
+              <SidebarItem
+                key={item.href}
+                icon={item.icon}
+                title={item.title}
+                href={item.href}
+                active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+              />
+            ))}
+          </nav>
+
+          <div className="p-4 border-t">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={user?.avatar || "/placeholder.svg?height=40&width=40"} />
+                <AvatarFallback>{user?.firstName?.charAt(0) || "A"}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{user?.firstName || "Admin"}</p>
+                <p className="text-xs text-gray-500">{user?.email || "admin@worldcuphotels.com"}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+                title="Se déconnecter"
+              >
+                <LogOut size={18} />
+              </Button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Sidebar mobile */}
+        <div
+          className={`fixed inset-0 bg-black/50 z-40 md:hidden ${sidebarOpen ? "block" : "hidden"}`}
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-200 ease-in-out md:hidden ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="font-semibold text-amber-800">Administration</h2>
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+              <X size={20} />
+            </Button>
+          </div>
+
+          <nav className="px-3 py-4 space-y-1">
+            {sidebarItems.map((item) => (
+              <SidebarItem
+                key={item.href}
+                icon={item.icon}
+                title={item.title}
+                href={item.href}
+                active={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+              />
+            ))}
+          </nav>
+
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={user?.avatar || "/placeholder.svg?height=40&width=40"} />
+                <AvatarFallback>{user?.firstName?.charAt(0) || "A"}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{user?.firstName || "Admin"}</p>
+                <p className="text-xs text-gray-500">{user?.email || "admin@worldcuphotels.com"}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={handleLogout}
+                title="Se déconnecter"
+              >
+                <LogOut size={18} />
+              </Button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Contenu principal */}
+        <main className="flex-1 p-6 bg-gray-50">
+          {/* Bouton pour ouvrir le menu mobile */}
+          <Button variant="outline" size="icon" className="mb-4 md:hidden" onClick={() => setSidebarOpen(true)}>
+            <Menu size={20} />
+          </Button>
+
+          {children}
+        </main>
       </div>
     </div>
   )

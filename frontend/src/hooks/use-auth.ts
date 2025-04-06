@@ -1,12 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// Use the environment variable for API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-
-export interface User {
+// Types
+interface User {
   id: string
   firstName: string
   email: string
@@ -15,22 +13,10 @@ export interface User {
   avatar?: string
 }
 
-interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>
-  signup: (userData: { email: string; password: string; firstName: string; phone: string }) => Promise<{
-    success: boolean
-    message: string
-  }>
-  logout: () => void
-  isAuthenticated: boolean
-  isAdmin: boolean
-}
+// API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -40,14 +26,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkAuth = async () => {
       try {
         // Check for stored user data
-        const storedUser = localStorage.getItem("user")
-        if (storedUser) {
-          const userData = JSON.parse(storedUser)
-          setUser(userData)
+        if (typeof window !== "undefined") {
+          const storedUser = localStorage.getItem("user")
+          if (storedUser) {
+            const userData = JSON.parse(storedUser)
+            setUser(userData)
+          }
         }
       } catch (error) {
         console.error("Error checking authentication:", error)
-        logout()
+        await logout()
       } finally {
         setIsLoading(false)
       }
@@ -65,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
+        credentials: "include", // Important pour les cookies
       })
 
       const data = await response.json()
@@ -82,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: data.user.role || "user",
         avatar:
           data.user.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.firstName)}&background=random`,
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.firstName || email.split("@")[0])}&background=random`,
       }
 
       // Save user data
@@ -131,34 +120,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-    router.push("/login")
+  const logout = async () => {
+    try {
+      // Tentative d'appel à l'API de déconnexion (si disponible)
+      try {
+        await fetch(`${API_URL}/logout`, {
+          method: "POST",
+          credentials: "include", // Important pour les cookies
+        })
+      } catch (error) {
+        console.log("Pas d'API de déconnexion disponible ou erreur:", error)
+        // On continue même si l'API échoue
+      }
+
+      // Nettoyage des données locales
+      setUser(null)
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("user")
+        sessionStorage.removeItem("userRole")
+        sessionStorage.removeItem("userEmail")
+      }
+
+      // Redirection vers la page de connexion
+      router.push("/login")
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error)
+    }
   }
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        signup,
-        logout,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+  return {
+    user,
+    isLoading,
+    login,
+    signup,
+    logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === "admin",
   }
-  return context
 }
 

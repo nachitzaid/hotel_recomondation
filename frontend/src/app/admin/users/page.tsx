@@ -1,43 +1,9 @@
 "use client"
 
-import { DialogTrigger } from "@/components/ui/dialog"
-
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import {
-  Search,
-  Filter,
-  MoreHorizontal,
-  User,
-  Calendar,
-  Mail,
-  Phone,
-  MapPin,
-  Shield,
-  ShieldAlert,
-  Download,
-  Edit,
-  Trash,
-  Ban,
-  Hotel,
-  Plus,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from "@/components/ui/use-toast"
+import { AdminService } from "@/services/admin-service"
 import {
   Dialog,
   DialogContent,
@@ -46,10 +12,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { AdminService } from "@/services/admin-service"
-import { useAuth } from "@/contexts/auth-context"
-import { Label } from "@/components/ui/label"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Ban, Calendar, Download, Mail, MapPin, MoreHorizontal, Phone, Search, Shield, ShieldAlert, Trash, User, Hotel, Filter } from "lucide-react"
+
 interface AdminUser {
   id: string
   firstName: string
@@ -78,21 +56,7 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
-  const [isAddUserOpen, setIsAddUserOpen] = useState(false)
-  const [newUser, setNewUser] = useState<Omit<AdminUser, "id">>({
-    firstName: "",
-    email: "",
-    phone: "",
-    type: "customer", // Changed from role to type
-    status: "active",
-    registeredAt: new Date().toLocaleDateString(), // Added required field
-    location: "",
-    bookings: 0,
-    totalSpent: "0€",
-    image: "/placeholder.svg?height=40&width=40",
-  })
 
-  // Charger les utilisateurs
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -114,7 +78,6 @@ export default function UsersPage() {
     fetchUsers()
   }, [toast])
 
-  // Filtrer les utilisateurs
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,6 +135,9 @@ export default function UsersPage() {
         title: "Succès",
         description: `L'utilisateur a été ${newStatus === "active" ? "débloqué" : "bloqué"} avec succès.`,
       })
+      if (newStatus === "blocked") {
+        setActiveTab("blocked")
+      }
     } catch (error) {
       console.error(`Erreur lors du ${newStatus === "active" ? "déblocage" : "blocage"} de l'utilisateur:`, error)
       toast({
@@ -180,30 +146,6 @@ export default function UsersPage() {
         variant: "destructive",
       })
     }
-  }
-
-  const handleAddUser = async () => {
-    try {
-      const result = await AdminService.createUser(newUser)
-      setUsers([...users, result])
-      setIsAddUserOpen(false)
-      toast({
-        title: "Succès",
-        description: "L'utilisateur a été ajouté avec succès.",
-      })
-    } catch (error) {
-      console.error("Erreur lors de l'ajout de l'utilisateur:", error)
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter l'utilisateur. Veuillez réessayer.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleNewUserChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setNewUser((prev) => ({ ...prev, [name]: value }))
   }
 
   if (isLoading) {
@@ -219,88 +161,13 @@ export default function UsersPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Gestion des Utilisateurs</h1>
-          <p className="text-gray-500">Gérez les clients et les hôtels inscrits sur votre plateforme.</p>
+          <p className="text-gray-500">Gérez les utilisateurs de votre plateforme.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Exporter
           </Button>
-          <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un utilisateur
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
-                <DialogDescription>
-                  Remplissez les informations pour ajouter un nouvel utilisateur à la plateforme.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Prénom</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={newUser.firstName}
-                      onChange={handleNewUserChange}
-                      placeholder="Prénom"
-                    />
-                  </div>
-              
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    value={newUser.email}
-                    onChange={handleNewUserChange}
-                    type="email"
-                    placeholder="email@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Téléphone</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={newUser.phone}
-                    onChange={handleNewUserChange}
-                    type="tel"
-                    placeholder="+33 6 12 34 56 78"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Type d'utilisateur</Label>
-                  <Select
-                    name="type"
-                    value={newUser.type}
-                    onValueChange={(value) => setNewUser({ ...newUser, type: value as "customer" | "hotel" })}
-                  >
-                    <SelectTrigger id="type">
-                      <SelectValue placeholder="Sélectionner un type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="customer">Client</SelectItem>
-                      <SelectItem value="hotel">Hôtel</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
-                  Annuler
-                </Button>
-                <Button onClick={handleAddUser}>Ajouter l'utilisateur</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -331,7 +198,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
+      <Tabs value={activeTab} className="space-y-4" onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="all">Tous les utilisateurs</TabsTrigger>
           <TabsTrigger value="customers">Clients</TabsTrigger>
@@ -390,22 +257,141 @@ export default function UsersPage() {
           </Card>
         </TabsContent>
 
-        {/* Autres onglets */}
         <TabsContent value="customers" className="space-y-4">
           <Card>
-            <CardContent className="p-0">{/* Contenu filtré pour les clients */}</CardContent>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="px-4 py-3">Utilisateur</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Statut</th>
+                      <th className="px-4 py-3">Inscription</th>
+                      <th className="px-4 py-3">Activité</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(user => user.type === "customer").length > 0 ? (
+                      users
+                        .filter(user => user.type === "customer")
+                        .map((user) => (
+                          <UserRow
+                            key={user.id}
+                            user={user}
+                            onViewDetails={openUserDetails}
+                            onToggleStatus={handleToggleUserStatus}
+                            onDelete={(id) => {
+                              setUserToDelete(id)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          />
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          Aucun client trouvé.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="hotels" className="space-y-4">
           <Card>
-            <CardContent className="p-0">{/* Contenu filtré pour les hôtels */}</CardContent>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="px-4 py-3">Utilisateur</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Statut</th>
+                      <th className="px-4 py-3">Inscription</th>
+                      <th className="px-4 py-3">Activité</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(user => user.type === "hotel").length > 0 ? (
+                      users
+                        .filter(user => user.type === "hotel")
+                        .map((user) => (
+                          <UserRow
+                            key={user.id}
+                            user={user}
+                            onViewDetails={openUserDetails}
+                            onToggleStatus={handleToggleUserStatus}
+                            onDelete={(id) => {
+                              setUserToDelete(id)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          />
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          Aucun hôtel trouvé.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="blocked" className="space-y-4">
           <Card>
-            <CardContent className="p-0">{/* Contenu filtré pour les utilisateurs bloqués */}</CardContent>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                      <th className="px-4 py-3">Utilisateur</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Type</th>
+                      <th className="px-4 py-3">Statut</th>
+                      <th className="px-4 py-3">Inscription</th>
+                      <th className="px-4 py-3">Activité</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(user => user.status === "blocked").length > 0 ? (
+                      users
+                        .filter(user => user.status === "blocked")
+                        .map((user) => (
+                          <UserRow
+                            key={user.id}
+                            user={user}
+                            onViewDetails={openUserDetails}
+                            onToggleStatus={handleToggleUserStatus}
+                            onDelete={(id) => {
+                              setUserToDelete(id)
+                              setIsDeleteDialogOpen(true)
+                            }}
+                          />
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          Aucun utilisateur bloqué.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
@@ -426,7 +412,6 @@ export default function UsersPage() {
   )
 }
 
-// Composant pour une ligne d'utilisateur
 function UserRow({
   user,
   onViewDetails,
@@ -540,10 +525,6 @@ function UserRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onViewDetails(user)}>Voir les détails</DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              Modifier
-            </DropdownMenuItem>
             {user.status !== "blocked" ? (
               <DropdownMenuItem className="text-amber-600" onClick={() => onToggleStatus(user.id, user.status)}>
                 <Ban className="mr-2 h-4 w-4" />
@@ -567,7 +548,6 @@ function UserRow({
   )
 }
 
-// Composant pour les détails de l'utilisateur
 function UserDetailsDialog({
   user,
   open,
@@ -682,10 +662,6 @@ function UserDetailsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
           </Button>
-          <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" />
-            Modifier
-          </Button>
           {user.status !== "blocked" ? (
             <Button
               variant="destructive"
@@ -715,7 +691,6 @@ function UserDetailsDialog({
   )
 }
 
-// Composant pour la confirmation de suppression
 function DeleteConfirmationDialog({
   open,
   onOpenChange,
@@ -746,4 +721,3 @@ function DeleteConfirmationDialog({
     </Dialog>
   )
 }
-

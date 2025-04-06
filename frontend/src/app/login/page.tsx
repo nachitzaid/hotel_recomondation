@@ -1,9 +1,11 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import type React from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" })
@@ -11,15 +13,18 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const { login, isAuthenticated, isAdmin } = useAuth()
 
+  // Rediriger si déjà connecté
   useEffect(() => {
-    const role = sessionStorage.getItem("userRole")
-    if (role === "admin") {
-      router.push("/admin")
-    } else if (role === "user") {
-      router.push("/dashboard")
+    if (isAuthenticated) {
+      if (isAdmin) {
+        router.push("/admin")
+      } else {
+        router.push("/dashboard")
+      }
     }
-  }, [])
+  }, [isAuthenticated, isAdmin, router])
 
   const validateForm = () => {
     let isValid = true
@@ -51,33 +56,12 @@ export default function Login() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+      const result = await login(formData.email, formData.password)
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Réponse du serveur:", data)
-
-        // Stocker les informations utilisateur
-        sessionStorage.setItem("userRole", data.user.role)
-        sessionStorage.setItem("userEmail", formData.email)
-
-        // Redirection immédiate basée sur le rôle
-        if (data.user.role === "admin") {
-          console.log("Redirection vers /admin")
-          router.push("/admin")
-        } else {
-          console.log("Redirection vers /dashboard")
-          router.push("/dashboard")
-        }
-      } else {
-        const data = await response.json()
-        console.log("Erreur de connexion:", data)
-        alert(data.message || "Identifiants incorrects")
+      if (!result.success) {
+        alert(result.message || "Identifiants incorrects")
       }
+      // La redirection est gérée dans la fonction login
     } catch (error) {
       console.error("Erreur lors de la connexion", error)
       alert("Une erreur s'est produite lors de la connexion. Veuillez réessayer.")
@@ -160,9 +144,51 @@ export default function Login() {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium flex items-center justify-center"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Connexion en cours..." : "Se connecter"}
+            {isSubmitting ? (
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Connexion en cours...
+              </div>
+            ) : (
+              "Se connecter"
+            )}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-sm">
+          <p>
+            En vous connectant, vous acceptez nos{" "}
+            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
+              Conditions d'utilisation
+            </a>{" "}
+            et notre{" "}
+            <a href="#" className="text-blue-600 hover:text-blue-500 underline">
+              Politique de confidentialité
+            </a>
+            .
+          </p>
+        </div>
+
+        <div className="mt-4 text-center text-sm">
+          <p>
+            Vous n'avez pas de compte?{" "}
+            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500 underline">
+              S'inscrire
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
