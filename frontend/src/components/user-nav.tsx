@@ -1,44 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { LogOut, Heart, Trophy, Menu, X, Hotel, User, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 
-export default function UserLayout({ children }: { children: React.ReactNode }) {
-  const [isReady, setIsReady] = useState(false)
+export default function UserNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout } = useAuth()
 
-  // État pour la transition
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsReady(true)
-    }, 50)
-    
-    return () => clearTimeout(timer)
-  }, [])
-
   const handleLogout = async () => {
     try {
-      // Désactiver la transition avec un court délai pour permettre
-      // à l'animation de se produire avant la déconnexion
-      setIsReady(false)
-      
-      // Court délai pour l'animation de fondu
-      setTimeout(async () => {
-        await logout()
-        // La redirection est gérée dans la fonction logout
-      }, 150)
+      await logout()
+      // La redirection est gérée dans la fonction logout
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
-      setIsReady(true) // Réactiver la transition en cas d'erreur
     }
   }
 
   return (
-    <div className={`min-h-screen flex flex-col transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}>
+    <>
       {/* Top navigation bar */}
       <div className="bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white p-4 shadow-lg">
         <div className="container mx-auto flex justify-between items-center">
@@ -119,47 +101,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         </div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-4 md:mb-0">
-              <Link href="/" className="flex items-center">
-                <Trophy className="h-6 w-6 mr-2" />
-                <span className="font-bold">WorldCup Hotels</span>
-              </Link>
-              <p className="mt-2 text-sm text-gray-400">Les meilleurs hôtels pour la Coupe du Monde 2030</p>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Liens utiles</h3>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li><Link href="/about">À propos</Link></li>
-                  <li><Link href="/contact">Contact</Link></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Légal</h3>
-                <ul className="space-y-2 text-sm text-gray-400">
-                  <li><Link href="/terms">Conditions</Link></li>
-                  <li><Link href="/privacy">Confidentialité</Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-4 border-t border-gray-700 text-center text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} WorldCup Hotels. Tous droits réservés.
-          </div>
-        </div>
-      </footer>
-    </div>
+      {/* Footer - laissez à l'extérieur car il est géré par le layout */}
+    </>
   )
 }

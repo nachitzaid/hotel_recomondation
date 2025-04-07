@@ -1,11 +1,15 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
+
+// Import layouts
 import AdminLayout from "@/app/admin/layout"
 import UserLayout from "@/app/users/layout"
 import GuestLayout from "@/app/guest/layout"
-import { useAuth } from "@/hooks/use-auth"
 
 interface LayoutProviderProps {
   children: React.ReactNode
@@ -16,35 +20,41 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
   const { user, isLoading, isReady, isAuthenticated, isAdmin } = useAuth()
   const [currentLayout, setCurrentLayout] = useState<"admin" | "user" | "guest" | "none">("none")
 
-  // Liste des pages d'authentification
-  const authPages = [
-    '/login', 
-    '/signup', 
-    '/reset-password',
-    '/forgot-password'
-  ]
+  // Liste des pages d'authentification et autres pages spéciales qui ne nécessitent pas de layout
+  const noLayoutPages = ["/login", "/signup", "/reset-password", "/forgot-password"]
 
   // Déterminer le layout à utiliser
   useEffect(() => {
     if (!isReady) return
 
-    // Vérifier si c'est une page d'authentification
-    const isAuthPage = authPages.includes(pathname)
-    
-    if (isAuthenticated) {
-      // Priorité à l'admin si connecté en tant qu'admin
-      setCurrentLayout(isAdmin ? "admin" : "user")
+    // Vérifier si c'est une page qui ne nécessite pas de layout
+    const isNoLayoutPage = noLayoutPages.some((page) => pathname === page || pathname.startsWith(page + "/"))
+
+    // Vérifier si c'est une page admin
+    const isAdminPage = pathname.startsWith("/admin")
+
+    // Logique de sélection du layout
+    if (isNoLayoutPage) {
+      // Pas de layout pour les pages d'authentification
+      setCurrentLayout("none")
+    } else if (isAdminPage) {
+      // Pages admin - vérifier si l'utilisateur est admin
+      if (isAuthenticated && isAdmin) {
+        setCurrentLayout("admin")
+      } else {
+        // Redirection gérée par les composants de protection de route
+        setCurrentLayout("none")
+      }
+    } else if (isAuthenticated) {
+      // Utilisateur connecté mais pas sur une page admin
+      setCurrentLayout("user")
     } else {
-      // Pas de layout pour les pages d'auth, guest layout pour les autres pages
-      setCurrentLayout(isAuthPage ? "none" : "guest")
+      // Utilisateur non connecté et pas sur une page d'authentification
+      setCurrentLayout("guest")
     }
 
-    console.log("Layout mis à jour:", 
-      isAdmin ? "admin" : 
-      (isAuthenticated ? "user" : 
-      (isAuthPage ? "none" : "guest"))
-    )
-  }, [isReady, isAuthenticated, isAdmin, pathname])
+    console.log("Layout mis à jour:", currentLayout, "pour le chemin:", pathname)
+  }, [isReady, isAuthenticated, isAdmin, pathname, currentLayout])
 
   // Pendant le chargement initial, afficher un loader
   if (isLoading || !isReady) {
@@ -57,8 +67,6 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
 
   // Afficher le layout approprié
   switch (currentLayout) {
-    case "admin":
-      return <AdminLayout>{children}</AdminLayout>
     case "user":
       return <UserLayout>{children}</UserLayout>
     case "guest":
@@ -69,3 +77,4 @@ export default function LayoutProvider({ children }: LayoutProviderProps) {
       return <>{children}</>
   }
 }
+

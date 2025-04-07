@@ -480,17 +480,7 @@ export const AdminService = {
     return normalizeUser(rawData)
   },
 
-  async updateUser(id: string, userData: Partial<AdminUser>): Promise<AdminUser> {
-    const response = await fetch(`${API_URL}/admin/users/${id}`, {
-      ...fetchOptions,
-      method: "PUT",
-      body: JSON.stringify(userData),
-    })
-    if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`)
-    const rawData = await response.json()
-    return normalizeUser(rawData)
-  },
-
+ 
   async deleteUser(id: string): Promise<void> {
     const response = await fetch(`${API_URL}/admin/users/${id}`, {
       ...fetchOptions,

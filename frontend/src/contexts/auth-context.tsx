@@ -1,242 +1,156 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
+import React, { createContext, useContext, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// Use the environment variable for API URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-
-export interface User {
+// Define user type
+type User = {
   id: string
-  firstName: string
   email: string
-  phone: string
-  role: "user" | "admin"
+  firstName?: string
+  lastName?: string
   avatar?: string
+  role: "admin" | "user"
 }
 
-interface AuthContextType {
+type AuthContextType = {
   user: User | null
-  isLoading: boolean
-  isReady: boolean
-  error: string | null
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>
-  signup: (userData: { email: string; password: string; firstName: string; phone: string }) => Promise<{
-    success: boolean
-    message: string
-  }>
-  logout: () => void
-  clearError: () => void
   isAuthenticated: boolean
   isAdmin: boolean
+  isLoading: boolean
+  isReady: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
-// Fonction utilitaire pour vérifier l'état d'authentification
-const checkAuthState = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  
-  try {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      if (userData && userData.email) {
-        return userData;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Erreur de vérification d'authentification:", error);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("user");
-    }
-    return null;
-  }
-};
+// Create context with default values
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  isAdmin: false,
+  isLoading: true,
+  isReady: false,
+  login: async () => {},
+  logout: async () => {},
+})
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isReady, setIsReady] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  // Check if user is already logged in on load
+  // Check authentication status on initial load
   useEffect(() => {
     const checkAuth = async () => {
       try {
         setIsLoading(true)
-        // Check for stored user data
-        const userData = checkAuthState();
-        if (userData) {
-          setUser(userData)
-        } else {
-          setUser(null)
+        // Get user from local storage if available
+        const storedUser = localStorage.getItem("user")
+        
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser)
+          setUser(parsedUser)
         }
       } catch (error) {
         console.error("Error checking authentication:", error)
         setUser(null)
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem("user")
-        }
       } finally {
         setIsLoading(false)
         setIsReady(true)
       }
     }
 
-    checkAuth()
+    // Only run in browser environment
+    if (typeof window !== "undefined") {
+      checkAuth()
+    } else {
+      // Set isReady to true for server-side rendering
+      setIsLoading(false)
+      setIsReady(true)
+    }
   }, [])
 
-  const login = useCallback(async (email: string, password: string) => {
-    setIsLoading(true)
-    setError(null)
+  // Login function
+  const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Login failed")
-        setIsLoading(false)
-        return { success: false, message: data.error || "Login failed" }
-      }
-
-      // Create user object from response
-      const userData: User = {
-        id: data.user._id || data.user.id || "user123",
-        firstName: data.user.firstName || email.split("@")[0],
-        email: data.user.email || email,
-        phone: data.user.phone || "",
-        role: data.user.role || "user",
-        avatar:
-          data.user.avatar ||
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.firstName)}&background=random`,
-      }
-
-      // Important: d'abord sauvegarder dans localStorage
-      localStorage.setItem("user", JSON.stringify(userData))
+      setIsLoading(true)
       
-      // Ensuite mettre à jour l'état React
-      setUser(userData)
+      // Simulate API call to authenticate
+      // In production, you would make a real API call here
       
-      // Naviguer après un court délai pour permettre au React de mettre à jour son état
-      setTimeout(() => {
-        router.push(userData.role === "admin" ? "/admin" : "/")
-        setIsLoading(false)
-      }, 10)
-
-      return { success: true, message: "Login successful" }
+      // For demonstration purposes, mock the user based on email
+      let mockUser: User
+      
+      if (email.includes("admin")) {
+        mockUser = {
+          id: "admin-1",
+          email,
+          firstName: "Admin",
+          lastName: "User",
+          role: "admin"
+        }
+        
+        // Store user in local storage
+        localStorage.setItem("user", JSON.stringify(mockUser))
+        setUser(mockUser)
+        router.push("/admin")
+      } else {
+        mockUser = {
+          id: "user-1",
+          email,
+          firstName: "Regular",
+          lastName: "User",
+          role: "user"
+        }
+        
+        // Store user in local storage
+        localStorage.setItem("user", JSON.stringify(mockUser))
+        setUser(mockUser)
+        router.push("/dashboard")
+      }
     } catch (error) {
       console.error("Login error:", error)
-      setError("Server connection error")
+      throw error
+    } finally {
       setIsLoading(false)
-      return { success: false, message: "Server connection error" }
     }
-  }, [router])
+  }
 
-  const signup = useCallback(async (userData: { email: string; password: string; firstName: string; phone: string }) => {
-    setIsLoading(true)
+  // Logout function
+  const logout = async () => {
     try {
-      const response = await fetch(`${API_URL}/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      })
-
-      // Récupérer le texte brut et tenter de le parser en JSON
-      const responseText = await response.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Erreur de parsing JSON:", e);
-        setIsLoading(false);
-        return { 
-          success: false, 
-          message: "Le serveur a renvoyé une réponse non valide" 
-        };
-      }
-
-      if (!response.ok) {
-        setError(data.error || "Registration failed")
-        setIsLoading(false)
-        return { success: false, message: data.error || "Registration failed" }
-      }
-
-      setIsLoading(false)
-      return { success: true, message: "Registration successful. Please log in." }
-    } catch (error) {
-      console.error("Signup error:", error)
-      setError("Server connection error")
-      setIsLoading(false)
-      return { success: false, message: "Server connection error" }
-    }
-  }, [])
-
-  const logout = useCallback(() => {
-    try {
-      // Tentative de déconnexion côté serveur si nécessaire
-      fetch(`${API_URL}/logout`, {
-        method: "POST",
-        credentials: "include",
-      }).catch(error => {
-        console.log("Erreur de déconnexion côté serveur:", error)
-        // On continue quand même avec la déconnexion côté client
-      });
-
-      // Important: d'abord nettoyer le localStorage
-      localStorage.removeItem("user")
+      setIsLoading(true)
       
-      // Ensuite mettre à jour l'état React
+      // Clear local storage
+      localStorage.removeItem("user")
       setUser(null)
       
-      // Rediriger après un court délai
-      setTimeout(() => {
-        router.push("/")
-      }, 10)
+      // Redirect to home page
+      router.push("/")
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error)
-      setError("Erreur lors de la déconnexion")
+      console.error("Logout error:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
     }
-  }, [router])
-
-  const clearError = useCallback(() => setError(null), [])
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isReady,
-        error,
-        login,
-        signup,
-        logout,
-        clearError,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
   }
-  return context
+
+  // Compute derived authentication states
+  const isAuthenticated = !!user
+  const isAdmin = isAuthenticated && user?.role === "admin"
+
+  const value = {
+    user,
+    isAuthenticated,
+    isAdmin,
+    isLoading,
+    isReady,
+    login,
+    logout,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+
+export const useAuth = () => useContext(AuthContext)

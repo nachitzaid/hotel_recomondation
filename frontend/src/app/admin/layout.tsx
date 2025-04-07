@@ -1,13 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Hotel, Calendar, Users, CreditCard, Settings, LogOut, Trophy, Menu, X } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { LayoutDashboard, Hotel, Calendar, Users, CreditCard, LogOut, Trophy, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/contexts/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,36 +46,16 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [isReady, setIsReady] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
-  const { user, isAdmin, logout } = useAuth()
-
-  // État pour la transition
-  useEffect(() => {
-    // Court délai avant d'afficher le contenu pour une transition fluide
-    const timer = setTimeout(() => {
-      setIsReady(true)
-    }, 50)
-    
-    return () => clearTimeout(timer)
-  }, [])
+  const { user, logout } = useAuth()
 
   const handleLogout = async () => {
     try {
-      // Désactiver la transition avec un court délai pour permettre
-      // à l'animation de se produire avant la déconnexion
-      setIsReady(false)
-      
-      // Court délai pour l'animation de fondu
-      setTimeout(async () => {
-        await logout()
-        // La redirection est gérée dans la fonction logout
-      }, 150)
+      await logout()
+      // La redirection est gérée dans la fonction logout
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
-      setIsReady(true) // Réactiver la transition en cas d'erreur
     }
   }
 
@@ -108,7 +88,7 @@ export default function AdminLayout({
   ]
 
   return (
-    <div className={`flex min-h-screen flex-col transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}>
+    <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between p-4 bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white shadow-md">
         <div className="flex items-center">
           <Trophy className="h-6 w-6 mr-2" />
@@ -254,3 +234,4 @@ export default function AdminLayout({
     </div>
   )
 }
+
