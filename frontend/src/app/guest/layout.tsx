@@ -1,25 +1,26 @@
+// components/layouts/guest-layout.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { LogOut, Heart, Trophy, Menu, X, Hotel, User, Calendar } from "lucide-react"
+import { LogIn, Heart, Trophy, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/hooks/use-auth"
 
-export default function UserLayout({ children }: { children: React.ReactNode }) {
+export default function GuestLayout({ children }: { children: React.ReactNode }) {
+  const [isReady, setIsReady] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
 
-  const handleLogout = async () => {
-    try {
-      await logout()
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error)
-    }
-  }
+  // État pour la transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true)
+    }, 50)
+    
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}>
       {/* Top navigation bar */}
       <div className="bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white p-4 shadow-lg">
         <div className="container mx-auto flex justify-between items-center">
@@ -44,20 +45,14 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                   <Heart className="mr-1 h-4 w-4" />
                   <Link href="/favorites">Favoris</Link>
                 </li>
-                <li className="hover:text-blue-200 transition-colors flex items-center">
-                  <Calendar className="mr-1 h-4 w-4" />
-                  <Link href="/reservations">Réservations</Link>
-                </li>
               </ul>
             </nav>
-            <div className="flex items-center space-x-2">
-              <User className="h-4 w-4" />
-              <span className="text-sm">{user?.firstName || "Utilisateur"}</span>
-              <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Déconnexion</span>
-              </Button>
-            </div>
+            <Button variant="secondary" size="sm" className="bg-white text-red-700 hover:bg-red-50" asChild>
+              <Link href="/login" className="flex items-center">
+                <LogIn className="mr-2 h-4 w-4" />
+                <span>Connexion</span>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -70,30 +65,23 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
                 <Link href="/hotels">Hôtels</Link>
               </li>
+              <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
+                <Link href="/stadiums">Stades</Link>
+              </li>
+              <li className="font-medium hover:text-blue-200 transition-colors px-4 py-2">
+                <Link href="/packages">Forfaits</Link>
+              </li>
               <li className="hover:text-blue-200 transition-colors flex items-center px-4 py-2">
                 <Heart className="mr-1 h-4 w-4" />
                 <Link href="/favorites">Favoris</Link>
               </li>
-              <li className="hover:text-blue-200 transition-colors flex items-center px-4 py-2">
-                <Calendar className="mr-1 h-4 w-4" />
-                <Link href="/reservations">Réservations</Link>
-              </li>
               <li className="px-4 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
-                    <span>{user?.firstName || "Utilisateur"}</span>
-                  </div>
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="bg-white text-red-700 hover:bg-red-50" 
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Déconnexion</span>
-                  </Button>
-                </div>
+                <Button variant="secondary" size="sm" className="w-full bg-white text-red-700 hover:bg-red-50" asChild>
+                  <Link href="/login" className="flex items-center justify-center">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span>Connexion</span>
+                  </Link>
+                </Button>
               </li>
             </ul>
           </nav>

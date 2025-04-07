@@ -1,50 +1,30 @@
 // components/client-layout.tsx
 "use client"
 
-import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth"
-import UserLayout from "@/components/layouts/user-layout"
-import AdminLayout from "@/components/layouts/admin-layout"
-import GuestLayout from "@/components/layouts/guest-layout"
-import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+import { AuthProvider } from "@/contexts/auth-context" 
+import LayoutProvider from "./layout-provider"
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth()
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
-  const pathname = usePathname()
-  
-  // Effet pour éviter l'hydratation côté serveur/client
+
+  // S'assurer que le montage initial est fait côté client
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Pendant le chargement ou avant le montage, afficher juste le contenu de base
-  if (isLoading || !mounted) {
-    return <>{children}</>
+  // Pendant l'hydratation, montrer un écran de chargement
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600"></div>
+      </div>
+    )
   }
 
-  // Vérifier si c'est une page de login ou signup pour ne pas appliquer le GuestLayout
-  const isAuthPage = pathname === '/login' || pathname === '/signup'
-  
-  // Une fois authentifié, décider quel layout utiliser
-  if (isAuthenticated) {
-    if (isAdmin) {
-      return <AdminLayout>{children}</AdminLayout>
-    } else {
-      return <UserLayout>{children}</UserLayout>
-    }
-  }
-
-  // Pour les utilisateurs non authentifiés
-  if (isAuthPage) {
-    // Pas de layout pour les pages d'authentification qui ont leur propre design
-    return <>{children}</>
-  } else {
-    // Layout invité pour les autres pages
-    return <GuestLayout>{children}</GuestLayout>
-  }
+  return (
+    <AuthProvider>
+      <LayoutProvider>{children}</LayoutProvider>
+    </AuthProvider>
+  )
 }

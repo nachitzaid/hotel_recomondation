@@ -1,6 +1,7 @@
+// hooks/use-auth.ts
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 
 // Types
@@ -21,20 +22,42 @@ interface SignupData {
   phone: string
 }
 
-// Type pour les données de connexion
-interface LoginData {
-  email: string
-  password: string
+// Type pour les résultats des opérations d'authentification
+interface AuthResult {
+  success: boolean
+  message: string
 }
 
 // API URL
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
+// Fonction utilitaire pour vérifier l'état d'authentification
+const checkAuthState = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      if (userData && userData.email) {
+        return userData;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Erreur de vérification d'authentification:", error);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("user");
+    }
+    return null;
+  }
+};
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [layoutTransition, setLayoutTransition] = useState(false)
+  const [isReady, setIsReady] = useState(false)
   const router = useRouter()
 
   // Vérification de l'authentification au chargement
@@ -42,19 +65,26 @@ export function useAuth() {
     const checkAuth = async () => {
       try {
         setIsLoading(true)
-        const storedUser = localStorage.getItem("user")
+        const userData = checkAuthState();
         
-        if (storedUser) {
-          const userData: User = JSON.parse(storedUser)
+        if (userData) {
           setUser(userData)
+        } else {
+          // Assurez-vous que l'état est complètement réinitialisé
+          setUser(null)
         }
       } catch (error) {
         console.error("Erreur de vérification d'authentification:", error)
         setError("Erreur de chargement du profil utilisateur")
         // En cas d'erreur, on supprime les données potentiellement corrompues
-        localStorage.removeItem("user")
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("user")
+        }
+        setUser(null)
       } finally {
         setIsLoading(false)
+        // Important: déclencher isReady après la vérification d'authentification
+        setIsReady(true)
       }
     }
 
@@ -62,12 +92,10 @@ export function useAuth() {
   }, [])
 
   // Fonction de connexion
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true)
     setError(null)
     
-    const loginData: LoginData = { email, password };
-
     try {
       console.log("Tentative de connexion avec:", email);
       
@@ -76,7 +104,7 @@ export function useAuth() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({ email, password }),
         credentials: "include",
       })
 
@@ -85,6 +113,7 @@ export function useAuth() {
 
       if (!response.ok) {
         setError(data.error || "Échec de la connexion")
+        setIsLoading(false)
         return { 
           success: false, 
           message: data.error || "Échec de la connexion" 
@@ -105,17 +134,16 @@ export function useAuth() {
       }
 
       // Sauvegarde des données utilisateur
-      setUser(userData)
       localStorage.setItem("user", JSON.stringify(userData))
       
-      // Activer la transition
-      setLayoutTransition(true)
+      // Important: mettre à jour l'utilisateur après avoir sauvegardé en localStorage
+      setUser(userData)
       
-      // Attendre un court instant pour la transition visuelle
+      // Navigation basée sur le rôle
       setTimeout(() => {
-        // Navigation basée sur le rôle après un court délai pour l'animation
         router.push(userData.role === "admin" ? "/admin" : "/")
-      }, 300)
+        setIsLoading(false)
+      }, 10)
 
       return { 
         success: true, 
@@ -124,80 +152,77 @@ export function useAuth() {
     } catch (error) {
       console.error("Erreur de connexion:", error)
       setError("Erreur de connexion au serveur")
+      setIsLoading(false)
       return { 
         success: false, 
         message: "Erreur de connexion au serveur" 
       }
-    } finally {
-      setIsLoading(false)
     }
-  }
+  }, [router])
 
   // Fonction d'inscription
-  // Dans la fonction signup de use-auth.ts
-const signup = async (signupData: SignupData) => {
-  setIsLoading(true)
-  setError(null)
+  const signup = useCallback(async (signupData: SignupData): Promise<AuthResult> => {
+    setIsLoading(true)
+    setError(null)
 
-  try {
-    console.log("Données d'inscription envoyées:", signupData);
-    
-    const response = await fetch(`${API_URL}/signup`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(signupData),
-    });
-
-    // Récupérer le texte brut de la réponse d'abord
-    const responseText = await response.text();
-    console.log("Réponse brute du serveur:", responseText);
-
-    // Essayer de parser le JSON seulement si c'est possible
-    let data;
     try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Erreur de parsing JSON:", e);
+      console.log("Données d'inscription envoyées:", signupData);
+      
+      const response = await fetch(`${API_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      // Récupérer le texte brut de la réponse d'abord
+      const responseText = await response.text();
+      console.log("Réponse brute du serveur:", responseText);
+
+      // Essayer de parser le JSON seulement si c'est possible
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Erreur de parsing JSON:", e);
+        setIsLoading(false)
+        return { 
+          success: false, 
+          message: "Le serveur a renvoyé une réponse non valide" 
+        };
+      }
+
+      console.log("Données parsées:", data);
+
+      if (!response.ok) {
+        setError(data.error || "Échec de l'inscription");
+        setIsLoading(false)
+        return { 
+          success: false, 
+          message: data.error || "Échec de l'inscription" 
+        };
+      }
+
+      setIsLoading(false)
+      return { 
+        success: true, 
+        message: data.message || "Inscription réussie. Veuillez vous connecter." 
+      };
+    } catch (error) {
+      console.error("Erreur d'inscription:", error);
+      setError("Erreur de connexion au serveur");
+      setIsLoading(false)
       return { 
         success: false, 
-        message: "Le serveur a renvoyé une réponse non valide" 
+        message: "Erreur de connexion au serveur" 
       };
     }
-
-    console.log("Données parsées:", data);
-
-    if (!response.ok) {
-      setError(data.error || "Échec de l'inscription");
-      return { 
-        success: false, 
-        message: data.error || "Échec de l'inscription" 
-      };
-    }
-
-    return { 
-      success: true, 
-      message: data.message || "Inscription réussie. Veuillez vous connecter." 
-    };
-  } catch (error) {
-    console.error("Erreur d'inscription:", error);
-    setError("Erreur de connexion au serveur");
-    return { 
-      success: false, 
-      message: "Erreur de connexion au serveur" 
-    };
-  } finally {
-    setIsLoading(false);
-  }
-};
+  }, [])
 
   // Fonction de déconnexion
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      // Activer la transition
-      setLayoutTransition(true)
-      
       // Tentative de déconnexion côté serveur si nécessaire
       try {
         await fetch(`${API_URL}/logout`, {
@@ -209,29 +234,30 @@ const signup = async (signupData: SignupData) => {
         // On continue quand même avec la déconnexion côté client
       }
 
+      // Important: d'abord effacer les données du localStorage
+      localStorage.removeItem("user")
+      
+      // Puis mettre à jour l'état React
+      setUser(null)
+      
       // Attendre un court instant pour la transition visuelle
       setTimeout(() => {
-        // Nettoyage des données locales
-        setUser(null)
-        localStorage.removeItem("user")
-        sessionStorage.removeItem("userRole")
-        sessionStorage.removeItem("userEmail")
-
         // Redirection vers la page d'accueil
         router.push("/")
-      }, 300)
+      }, 10)
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
       setError("Erreur lors de la déconnexion")
     }
-  }
+  }, [router])
 
   // Méthodes utilitaires
-  const clearError = () => setError(null)
+  const clearError = useCallback(() => setError(null), [])
 
   return {
     user,
     isLoading,
+    isReady,
     error,
     login,
     signup,
@@ -239,6 +265,5 @@ const signup = async (signupData: SignupData) => {
     clearError,
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
-    layoutTransition,
   }
 }

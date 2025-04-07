@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -47,24 +46,36 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
+  const [isReady, setIsReady] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isLoading, isAdmin, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
 
-  // Redirect if not admin
+  // État pour la transition
   useEffect(() => {
-    if (!isLoading && !isAdmin) {
-      router.push("/login")
-    }
-  }, [isLoading, isAdmin, router])
+    // Court délai avant d'afficher le contenu pour une transition fluide
+    const timer = setTimeout(() => {
+      setIsReady(true)
+    }, 50)
+    
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleLogout = async () => {
     try {
-      await logout()
-      // La redirection est gérée dans la fonction logout
+      // Désactiver la transition avec un court délai pour permettre
+      // à l'animation de se produire avant la déconnexion
+      setIsReady(false)
+      
+      // Court délai pour l'animation de fondu
+      setTimeout(async () => {
+        await logout()
+        // La redirection est gérée dans la fonction logout
+      }, 150)
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
+      setIsReady(true) // Réactiver la transition en cas d'erreur
     }
   }
 
@@ -94,25 +105,10 @@ export default function AdminLayout({
       title: "Paiements",
       href: "/admin/payments",
     },
-    
   ]
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600"></div>
-      </div>
-    )
-  }
-
-  // If not admin and not loading, the useEffect will redirect
-  if (!isAdmin && !isLoading) {
-    return null
-  }
-
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`flex min-h-screen flex-col transition-opacity duration-300 ${isReady ? 'opacity-100' : 'opacity-0'}`}>
       <header className="flex items-center justify-between p-4 bg-gradient-to-r from-red-700 via-amber-600 to-green-700 text-white shadow-md">
         <div className="flex items-center">
           <Trophy className="h-6 w-6 mr-2" />
@@ -258,4 +254,3 @@ export default function AdminLayout({
     </div>
   )
 }
-

@@ -3,14 +3,14 @@
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { useState } from "react"
 import Link from "next/link"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth" // Ou "@/contexts/auth-context" si vous utilisez le contexte directement
 
 export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" })
   const [errors, setErrors] = useState({ email: "", password: "" })
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login, isAuthenticated, isAdmin, layoutTransition } = useAuth()
+  const { login, isAuthenticated, isAdmin } = useAuth()
 
   const validateForm = () => {
     let isValid = true
@@ -42,14 +42,13 @@ export default function Login() {
     setIsSubmitting(true)
 
     try {
-      // Notez que nous utilisons maintenant les paramètres individuels email et password
       const result = await login(formData.email, formData.password)
 
       if (!result.success) {
         alert(result.message || "Identifiants incorrects")
         setIsSubmitting(false)
       }
-      // Le hook useAuth gère maintenant la redirection ou le rafraîchissement
+      // Le hook useAuth gère maintenant la redirection
       
     } catch (error) {
       console.error("Erreur lors de la connexion", error)
@@ -58,15 +57,10 @@ export default function Login() {
     }
   }
 
-  // Appliquer le style de transition en fonction de l'état
-  const transitionStyles = layoutTransition 
-    ? "opacity-0 scale-95 transform" 
-    : "opacity-100 scale-100 transform";
-
   // Si l'utilisateur est déjà connecté, afficher un message
   if (isAuthenticated) {
     return (
-      <div className={`flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 items-center justify-center transition-all duration-500 ${transitionStyles}`}>
+      <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 items-center justify-center">
         <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-6 text-center">
           <h1 className="text-2xl font-bold mb-4">Vous êtes déjà connecté</h1>
           <p className="text-gray-600 mb-6">
@@ -74,16 +68,10 @@ export default function Login() {
           </p>
           <div className="flex justify-center gap-4">
             <Link 
-              href={isAdmin ? "/admin" : "/dashboard"}
+              href={isAdmin ? "/admin" : "/"}
               className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors font-medium"
             >
               {isAdmin ? "Tableau de bord" : "Mon espace"}
-            </Link>
-            <Link 
-              href="/"
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-md transition-colors font-medium"
-            >
-              Page d'accueil
             </Link>
           </div>
         </div>
@@ -92,7 +80,7 @@ export default function Login() {
   }
 
   return (
-    <div className={`flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 items-center justify-center transition-all duration-500 ${transitionStyles}`}>
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 items-center justify-center">
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-6">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">Connexion</h1>
