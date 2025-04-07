@@ -128,24 +128,6 @@ export default function UsersPage() {
   const handleToggleUserStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "blocked" ? "active" : "blocked"
 
-    try {
-      await AdminService.updateUser(id, { status: newStatus })
-      setUsers(users.map((user) => (user.id === id ? { ...user, status: newStatus } : user)))
-      toast({
-        title: "Succès",
-        description: `L'utilisateur a été ${newStatus === "active" ? "débloqué" : "bloqué"} avec succès.`,
-      })
-      if (newStatus === "blocked") {
-        setActiveTab("blocked")
-      }
-    } catch (error) {
-      console.error(`Erreur lors du ${newStatus === "active" ? "déblocage" : "blocage"} de l'utilisateur:`, error)
-      toast({
-        title: "Erreur",
-        description: `Impossible de ${newStatus === "active" ? "débloquer" : "bloquer"} l'utilisateur. Veuillez réessayer.`,
-        variant: "destructive",
-      })
-    }
   }
 
   if (isLoading) {

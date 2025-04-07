@@ -3,7 +3,19 @@
 import type React from "react"
 import { useState, useEffect, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Plus, Filter, MoreHorizontal, Star, MapPin, Check, X, Edit, Trash, Download, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Search,
+  Plus,
+  MoreHorizontal,
+  Star,
+  MapPin,
+  Check,
+  Edit,
+  Trash,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,7 +38,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
@@ -89,9 +101,9 @@ interface HotelFormState {
 }
 
 interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
 }
 
 function HotelRow({ hotel, onViewDetails, onToggleStatus, onDelete, onEdit }: HotelRowProps) {
@@ -115,7 +127,7 @@ function HotelRow({ hotel, onViewDetails, onToggleStatus, onDelete, onEdit }: Ho
             </div>
             <div className="flex items-center text-sm text-gray-500 mt-1">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 mr-1" />
-              {hotel.HotelRating.replace('Star', ' Étoiles')}
+              {hotel.HotelRating.replace("Star", " Étoiles")}
             </div>
           </div>
         </div>
@@ -127,10 +139,12 @@ function HotelRow({ hotel, onViewDetails, onToggleStatus, onDelete, onEdit }: Ho
         </div>
       </td>
       <td className="px-4 py-4 text-sm text-gray-500">{hotel.Address || "N/A"}</td>
-      <td className="px-4 py-4 text-sm text-gray-500">{hotel.Attractions || "N/A"}</td>
-      <td className="px-4 py-4 text-sm text-gray-500">{hotel.Description ? hotel.Description.substring(0, 50) + (hotel.Description.length > 50 ? "..." : "") : "N/A"}</td>
+      <td className="hidden"></td>
+      <td className="px-4 py-4 text-sm text-gray-500">
+        {hotel.Description ? hotel.Description.substring(0, 50) + (hotel.Description.length > 50 ? "..." : "") : "N/A"}
+      </td>
       <td className="px-4 py-4 text-sm text-gray-500">{hotel.FaxNumber || "N/A"}</td>
-      <td className="px-4 py-4 text-sm text-gray-500">{hotel.HotelFacilities || "N/A"}</td>
+      <td className="hidden"></td>
       <td className="px-4 py-4 text-sm text-gray-500">{hotel.Map || "N/A"}</td>
       <td className="px-4 py-4 text-sm text-gray-500">{hotel.PhoneNumber || "N/A"}</td>
       <td className="px-4 py-4 text-sm text-gray-500">{hotel.PinCode || "N/A"}</td>
@@ -147,7 +161,7 @@ function HotelRow({ hotel, onViewDetails, onToggleStatus, onDelete, onEdit }: Ho
               <Edit className="mr-2 h-4 w-4" />
               Modifier
             </DropdownMenuItem>
-            
+
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-600" onClick={() => onDelete(hotel._id)}>
               <Trash className="mr-2 h-4 w-4" />
@@ -163,32 +177,27 @@ function HotelRow({ hotel, onViewDetails, onToggleStatus, onDelete, onEdit }: Ho
 function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) {
   return (
     <div className="flex items-center justify-center mt-6 gap-2">
-      <Button 
-        variant="outline" 
-        size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-      >
+      <Button variant="outline" size="sm" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage <= 1}>
         <ChevronLeft className="h-4 w-4 mr-1" />
         Précédent
       </Button>
-      
+
       <div className="flex items-center gap-1 mx-2">
         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
           // Calcul pour afficher les pages autour de la page courante
-          let pageToShow = currentPage;
+          let pageToShow = currentPage
           if (currentPage < 3) {
-            pageToShow = i + 1;
+            pageToShow = i + 1
           } else if (currentPage > totalPages - 2) {
-            pageToShow = totalPages - 4 + i;
+            pageToShow = totalPages - 4 + i
           } else {
-            pageToShow = currentPage - 2 + i;
+            pageToShow = currentPage - 2 + i
           }
-          
+
           // S'assurer que pageToShow est dans les limites
-          if (pageToShow <= 0) pageToShow = i + 1;
-          if (pageToShow > totalPages) return null;
-          
+          if (pageToShow <= 0) pageToShow = i + 1
+          if (pageToShow > totalPages) return null
+
           return (
             <Button
               key={pageToShow}
@@ -199,26 +208,21 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
             >
               {pageToShow}
             </Button>
-          );
+          )
         })}
-        
+
         {totalPages > 5 && currentPage < totalPages - 2 && (
           <>
             <span className="mx-1">...</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-8 h-8 p-0"
-              onClick={() => onPageChange(totalPages)}
-            >
+            <Button variant="outline" size="sm" className="w-8 h-8 p-0" onClick={() => onPageChange(totalPages)}>
               {totalPages}
             </Button>
           </>
         )}
       </div>
-      
-      <Button 
-        variant="outline" 
+
+      <Button
+        variant="outline"
         size="sm"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
@@ -227,7 +231,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
         <ChevronRight className="h-4 w-4 ml-1" />
       </Button>
     </div>
-  );
+  )
 }
 
 export default function HotelsPage() {
@@ -265,88 +269,87 @@ export default function HotelsPage() {
     status: "active",
     verified: false,
     rooms: "",
-    price: ""
+    price: "",
   })
 
   // La variable pendingApprovalCount n'est plus nécessaire car nous avons supprimé l'onglet "En attente"
 
   const fetchHotels = async (page = 1) => {
     try {
-      setIsLoading(true);
-      console.log(`Chargement des hôtels (page ${page}, limite ${limit})...`);
-      
+      setIsLoading(true)
+      console.log(`Chargement des hôtels (page ${page}, limite ${limit})...`)
+
       // Appel du service avec les paramètres de pagination
-      const response = await AdminService.getHotels(limit, page);
-      console.log("Réponse API:", response);
-      
+      const response = await AdminService.getHotels(limit, page)
+      console.log("Réponse API:", response)
+
       // Traitement des différents formats de réponse possibles
-      let hotelsData: Hotel[] = [];
-      let totalCount = 0;
-      let totalPagesCount = 0;
-      let currentPageNumber = page;
-      
+      let hotelsData: Hotel[] = []
+      let totalCount = 0
+      let totalPagesCount = 0
+      let currentPageNumber = page
+
       if (Array.isArray(response)) {
         // Si la réponse est directement un tableau d'hôtels
-        console.log("Format de réponse: tableau d'hôtels");
-        hotelsData = response;
-        totalCount = response.length;
-        totalPagesCount = Math.ceil(totalCount / limit);
+        console.log("Format de réponse: tableau d'hôtels")
+        hotelsData = response
+        totalCount = response.length
+        totalPagesCount = Math.ceil(totalCount / limit)
       } else if (response.hotels && Array.isArray(response.hotels)) {
         // Si la réponse est au format paginé attendu
-        console.log("Format de réponse: objet paginé");
-        hotelsData = response.hotels;
-        totalCount = response.total || response.hotels.length;
-        totalPagesCount = response.pages || Math.ceil(totalCount / limit);
-        currentPageNumber = response.page || page;
+        console.log("Format de réponse: objet paginé")
+        hotelsData = response.hotels
+        totalCount = response.total || response.hotels.length
+        totalPagesCount = response.pages || Math.ceil(totalCount / limit)
+        currentPageNumber = response.page || page
       } else {
-        console.error("Format de réponse non reconnu:", response);
+        console.error("Format de réponse non reconnu:", response)
         toast({
           title: "Erreur",
           description: "Format de données non reconnu.",
           variant: "destructive",
-        });
-        return;
+        })
+        return
       }
-      
-      console.log(`${hotelsData.length} hôtels récupérés pour la page ${currentPageNumber}`);
-      
+
+      console.log(`${hotelsData.length} hôtels récupérés pour la page ${currentPageNumber}`)
+
       // Utiliser directement les données retournées et convertir "pending" en "inactive"
-      const formattedHotels = hotelsData.map(hotel => ({
+      const formattedHotels = hotelsData.map((hotel) => ({
         ...hotel,
         // Convertir le statut "pending" en "inactive" (car nous supprimons l'option "pending")
-        status: hotel.status === "pending" ? "inactive" as const : hotel.status
-      }));
-      
-      setHotels(formattedHotels);
-      setTotalHotels(totalCount);
-      setTotalPages(totalPagesCount);
-      setCurrentPage(currentPageNumber);
-      
+        status: hotel.status === "pending" ? ("inactive" as const) : hotel.status,
+      }))
+
+      setHotels(formattedHotels)
+      setTotalHotels(totalCount)
+      setTotalPages(totalPagesCount)
+      setCurrentPage(currentPageNumber)
     } catch (error) {
-      console.error("Erreur lors du chargement des hôtels:", error);
+      console.error("Erreur lors du chargement des hôtels:", error)
       toast({
         title: "Erreur",
         description: "Impossible de charger les hôtels. Veuillez réessayer ou vérifier votre connexion.",
         variant: "destructive",
-      });
-      setHotels([]);
+      })
+      setHotels([])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     fetchHotels(1) // Charger la première page au montage
   }, [])
 
   const handlePageChange = (page: number) => {
-    if (page === currentPage) return;
-    
-    setCurrentPage(page);
-    fetchHotels(page);
-    
+    if (page === currentPage) return
+
+    setCurrentPage(page)
+    fetchHotels(page)
+
     // Remonter en haut de la page
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleNewHotelChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -360,9 +363,9 @@ export default function HotelsPage() {
 
   const handleStatusChange = (value: string) => {
     // Ne permettre que "active" ou "inactive"
-    setNewHotel((prev) => ({ 
-      ...prev, 
-      status: value as "active" | "inactive"
+    setNewHotel((prev) => ({
+      ...prev,
+      status: value as "active" | "inactive",
     }))
   }
 
@@ -375,8 +378,8 @@ export default function HotelsPage() {
 
     try {
       // Fermer la boîte de dialogue immédiatement pour une meilleure expérience utilisateur
-      setIsAddHotelOpen(false);
-      
+      setIsAddHotelOpen(false)
+
       const hotelData = {
         ...newHotel,
         HotelCode: Number(newHotel.HotelCode) || 0,
@@ -387,11 +390,11 @@ export default function HotelsPage() {
         FaxNumber: "", // Peut être rempli plus tard
         Attractions: "", // Peut être rempli plus tard
         HotelFacilities: "", // Peut être rempli plus tard
-        Map: "" // Peut être rempli plus tard
+        Map: "", // Peut être rempli plus tard
       }
 
       // Mettre à jour l'interface de manière optimiste
-      const tempId = `temp-${Date.now()}`;
+      const tempId = `temp-${Date.now()}`
       const tempHotel = {
         _id: tempId,
         ...hotelData,
@@ -399,16 +402,16 @@ export default function HotelsPage() {
         HotelCode: Number(hotelData.HotelCode),
         rooms: Number(hotelData.rooms) || 0,
         price: Number(hotelData.price) || 0,
-      } as Hotel;
-      
-      setHotels(prevHotels => [tempHotel, ...prevHotels]);
+      } as Hotel
+
+      setHotels((prevHotels) => [tempHotel, ...prevHotels])
 
       // Envoyer les données au serveur
-      const result = await AdminService.createHotel(hotelData);
+      const result = await AdminService.createHotel(hotelData)
 
       // Actualiser la liste avec les données réelles
-      fetchHotels(1);
-      setCurrentPage(1);
+      fetchHotels(1)
+      setCurrentPage(1)
 
       // Réinitialiser le formulaire
       setNewHotel({
@@ -425,24 +428,24 @@ export default function HotelsPage() {
         status: "active",
         verified: false,
         rooms: "",
-        price: ""
-      });
+        price: "",
+      })
 
       toast({
         title: "Succès",
         description: "L'hôtel a été ajouté avec succès.",
-      });
+      })
     } catch (error) {
-      console.error("Erreur lors de l'ajout de l'hôtel:", error);
-      
+      console.error("Erreur lors de l'ajout de l'hôtel:", error)
+
       // Supprimer l'hôtel temporaire en cas d'erreur
-      setHotels(prevHotels => prevHotels.filter(h => !h._id.startsWith('temp-')));
-      
+      setHotels((prevHotels) => prevHotels.filter((h) => !h._id.startsWith("temp-")))
+
       toast({
         title: "Erreur",
         description: "Impossible d'ajouter l'hôtel. Veuillez réessayer.",
         variant: "destructive",
-      });
+      })
     }
   }
 
@@ -450,169 +453,165 @@ export default function HotelsPage() {
     const matchesSearch =
       hotel.HotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       hotel.cityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hotel.countyName.toLowerCase().includes(searchTerm.toLowerCase());
+      hotel.countyName.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = selectedStatus === "all" || hotel.status === selectedStatus;
+    const matchesStatus = selectedStatus === "all" || hotel.status === selectedStatus
 
     const matchesTab =
       activeTab === "all" ||
       (activeTab === "active" && hotel.status === "active") ||
-      (activeTab === "inactive" && hotel.status === "inactive");
+      (activeTab === "inactive" && hotel.status === "inactive")
 
-    return matchesSearch && matchesStatus && matchesTab;
-  });
+    return matchesSearch && matchesStatus && matchesTab
+  })
 
   const handleDeleteHotel = async () => {
-    if (!hotelToDelete) return;
+    if (!hotelToDelete) return
 
     try {
       // Mettre à jour l'interface de manière optimiste
-      setHotels(prevHotels => prevHotels.filter(hotel => hotel._id !== hotelToDelete));
-      
+      setHotels((prevHotels) => prevHotels.filter((hotel) => hotel._id !== hotelToDelete))
+
       // Fermer la boîte de dialogue immédiatement
-      setIsDeleteDialogOpen(false);
-      setHotelToDelete(null);
+      setIsDeleteDialogOpen(false)
+      setHotelToDelete(null)
 
       // Envoyer la demande de suppression
-      await AdminService.deleteHotel(hotelToDelete);
-      
+      await AdminService.deleteHotel(hotelToDelete)
+
       toast({
         title: "Succès",
         description: "L'hôtel a été supprimé avec succès.",
-      });
-      
+      })
+
       // Vérifier si la page actuelle est maintenant vide et si oui, charger la page précédente
       if (filteredHotels.length === 1 && currentPage > 1) {
-        setCurrentPage(prev => prev - 1);
-        fetchHotels(currentPage - 1);
+        setCurrentPage((prev) => prev - 1)
+        fetchHotels(currentPage - 1)
       } else {
         // Sinon recharger la page actuelle
-        fetchHotels(currentPage);
+        fetchHotels(currentPage)
       }
     } catch (error) {
-      console.error("Erreur lors de la suppression de l'hôtel:", error);
-      
+      console.error("Erreur lors de la suppression de l'hôtel:", error)
+
       // Recharger les données en cas d'erreur
-      fetchHotels(currentPage);
-      
+      fetchHotels(currentPage)
+
       toast({
         title: "Erreur",
         description: "Impossible de supprimer l'hôtel. Veuillez réessayer.",
         variant: "destructive",
-      });
+      })
     }
   }
 
   const handleSaveHotel = async (hotel: Hotel) => {
     try {
       // Mettre à jour l'interface de manière optimiste
-      setHotels(prevHotels => 
-        prevHotels.map(h => h._id === hotel._id ? hotel : h)
-      );
-      
+      setHotels((prevHotels) => prevHotels.map((h) => (h._id === hotel._id ? hotel : h)))
+
       // Fermer la boîte de dialogue immédiatement
-      setIsEditHotelOpen(false);
-      
+      setIsEditHotelOpen(false)
+
       // Envoyer la mise à jour au serveur
-      await AdminService.updateHotel(hotel._id, hotel);
-      
+      await AdminService.updateHotel(hotel._id, hotel)
+
       toast({
         title: "Succès",
         description: "L'hôtel a été mis à jour avec succès.",
-      });
+      })
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'hôtel:", error);
-      
+      console.error("Erreur lors de la mise à jour de l'hôtel:", error)
+
       // Recharger les données en cas d'erreur
-      fetchHotels(currentPage);
-      
+      fetchHotels(currentPage)
+
       toast({
         title: "Erreur",
         description: "Impossible de mettre à jour l'hôtel. Veuillez réessayer.",
         variant: "destructive",
-      });
+      })
     }
   }
 
   const handleEditHotel = (hotel: Hotel) => {
-    setSelectedHotel(hotel);
-    setIsEditHotelOpen(true);
+    setSelectedHotel(hotel)
+    setIsEditHotelOpen(true)
   }
 
   const handleToggleHotelStatus = async (id: string, currentStatus: string) => {
     // Toujours basculer entre active et inactive seulement
-    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    const newStatus = currentStatus === "active" ? "inactive" : "active"
 
     try {
       // Mettre à jour l'interface de manière optimiste
-      setHotels(prevHotels => 
+      setHotels((prevHotels) =>
         prevHotels.map((hotel) => {
           if (hotel._id === id) {
-            return { ...hotel, status: newStatus as "active" | "inactive" };
+            return { ...hotel, status: newStatus as "active" | "inactive" }
           }
-          return hotel;
-        })
-      );
+          return hotel
+        }),
+      )
 
       // Envoyer la mise à jour au serveur
-      await AdminService.updateHotel(id, { status: newStatus as "active" | "inactive" });
+      await AdminService.updateHotel(id, { status: newStatus as "active" | "inactive" })
 
       toast({
         title: "Succès",
         description: `L'hôtel a été ${newStatus === "active" ? "activé" : "désactivé"} avec succès.`,
-      });
+      })
     } catch (error) {
-      console.error(
-        `Erreur lors de ${newStatus === "active" ? "l'activation" : "la désactivation"} de l'hôtel:`,
-        error,
-      );
-      
+      console.error(`Erreur lors de ${newStatus === "active" ? "l'activation" : "la désactivation"} de l'hôtel:`, error)
+
       // Recharger les données en cas d'erreur
-      fetchHotels(currentPage);
-      
+      fetchHotels(currentPage)
+
       toast({
         title: "Erreur",
         description: `Impossible de ${newStatus === "active" ? "activer" : "désactiver"} l'hôtel. Veuillez réessayer.`,
         variant: "destructive",
-      });
+      })
     }
   }
 
   const handleExportData = () => {
     try {
       // Créer un CSV des hôtels
-      let csvContent = "HotelName,cityName,countyName,HotelCode,Address,Attractions,Description,FaxNumber,HotelFacilities,Map,PhoneNumber,PinCode,HotelWebsiteUrl,status,verified\n";
-      
-      filteredHotels.forEach(hotel => {
-        csvContent += `"${hotel.HotelName}","${hotel.cityName}","${hotel.countyName}",${hotel.HotelCode},"${hotel.Address}","${hotel.Attractions || ''}","${hotel.Description || ''}","${hotel.FaxNumber || ''}","${hotel.HotelFacilities || ''}","${hotel.Map || ''}","${hotel.PhoneNumber || ''}",${hotel.PinCode || ''},"${hotel.HotelWebsiteUrl || ''}","${hotel.status}",${hotel.verified}\n`;
-      });
-      
+      let csvContent =
+        "HotelName,cityName,countyName,HotelCode,Address,Attractions,Description,FaxNumber,HotelFacilities,Map,PhoneNumber,PinCode,HotelWebsiteUrl,status,verified\n"
+
+      filteredHotels.forEach((hotel) => {
+        csvContent += `"${hotel.HotelName}","${hotel.cityName}","${hotel.countyName}",${hotel.HotelCode},"${hotel.Address}","${hotel.Attractions || ""}","${hotel.Description || ""}","${hotel.FaxNumber || ""}","${hotel.HotelFacilities || ""}","${hotel.Map || ""}","${hotel.PhoneNumber || ""}",${hotel.PinCode || ""},"${hotel.HotelWebsiteUrl || ""}","${hotel.status}",${hotel.verified}\n`
+      })
+
       // Créer un blob et le télécharger
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `hotels_export_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      link.setAttribute("download", `hotels_export_${new Date().toISOString().split("T")[0]}.csv`)
+      link.style.visibility = "hidden"
+
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
       toast({
         title: "Succès",
         description: "Les données ont été exportées avec succès.",
-      });
+      })
     } catch (error) {
-      console.error("Erreur lors de l'exportation des données:", error);
+      console.error("Erreur lors de l'exportation des données:", error)
       toast({
         title: "Erreur",
         description: "Impossible d'exporter les données. Veuillez réessayer.",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   if (isLoading && hotels.length === 0) {
     return (
@@ -622,23 +621,21 @@ export default function HotelsPage() {
     )
   }
 
-  const safeSelectedHotel = selectedHotel 
-  ? {
-      ...selectedHotel,
-      pendingApproval: selectedHotel.pendingApproval ?? false
-    } 
-  : null;
-
-
+  const safeSelectedHotel = selectedHotel
+    ? {
+        ...selectedHotel,
+        pendingApproval: selectedHotel.pendingApproval ?? false,
+      }
+    : null
 
   return (
     <div className="space-y-6">
-     <EditHotelDialog
-  open={isEditHotelOpen}
-  onOpenChange={setIsEditHotelOpen}
-  hotel={safeSelectedHotel}
-  onSave={handleSaveHotel}
-/>
+      <EditHotelDialog
+        open={isEditHotelOpen}
+        onOpenChange={setIsEditHotelOpen}
+        hotel={safeSelectedHotel}
+        onSave={handleSaveHotel}
+      />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Gestion des Hôtels</h1>
@@ -718,10 +715,7 @@ export default function HotelsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="HotelRating">Classement</Label>
-                      <Select 
-                        value={newHotel.HotelRating} 
-                        onValueChange={handleRatingChange}
-                      >
+                      <Select value={newHotel.HotelRating} onValueChange={handleRatingChange}>
                         <SelectTrigger id="HotelRating">
                           <SelectValue placeholder="Sélectionner un classement" />
                         </SelectTrigger>
@@ -801,11 +795,7 @@ export default function HotelsPage() {
                     />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="verified" 
-                      checked={newHotel.verified} 
-                      onCheckedChange={handleVerifiedChange} 
-                    />
+                    <Checkbox id="verified" checked={newHotel.verified} onCheckedChange={handleVerifiedChange} />
                     <Label htmlFor="verified">Hôtel vérifié</Label>
                   </div>
                   {/* Option "Nécessite approbation" supprimée */}
@@ -836,7 +826,6 @@ export default function HotelsPage() {
       </div>
 
       <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
-
         <TabsContent value="all" className="space-y-4">
           <Card>
             <CardContent className="p-0">
@@ -845,7 +834,7 @@ export default function HotelsPage() {
                   <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               )}
-              
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -853,10 +842,10 @@ export default function HotelsPage() {
                       <th className="px-4 py-3">Hôtel</th>
                       <th className="px-4 py-3">Emplacement</th>
                       <th className="px-4 py-3">Adresse</th>
-                      <th className="px-4 py-3">Attractions</th>
+                      <th className="hidden">Attractions</th>
                       <th className="px-4 py-3">Description</th>
                       <th className="px-4 py-3">Fax</th>
-                      <th className="px-4 py-3">Équipements</th>
+                      <th className="hidden">Équipements</th>
                       <th className="px-4 py-3">Map</th>
                       <th className="px-4 py-3">Téléphone</th>
                       <th className="px-4 py-3">Code Postal</th>
@@ -882,8 +871,8 @@ export default function HotelsPage() {
                     ) : (
                       <tr>
                         <td colSpan={12} className="px-4 py-8 text-center text-gray-500">
-                          {isLoading 
-                            ? "Chargement des hôtels..." 
+                          {isLoading
+                            ? "Chargement des hôtels..."
                             : "Aucun hôtel ne correspond à vos critères de recherche."}
                         </td>
                       </tr>
@@ -891,14 +880,10 @@ export default function HotelsPage() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Pagination */}
               {totalPages > 1 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
               )}
             </CardContent>
           </Card>
@@ -914,10 +899,10 @@ export default function HotelsPage() {
                       <th className="px-4 py-3">Hôtel</th>
                       <th className="px-4 py-3">Emplacement</th>
                       <th className="px-4 py-3">Adresse</th>
-                      <th className="px-4 py-3">Attractions</th>
+                      <th className="hidden">Attractions</th>
                       <th className="px-4 py-3">Description</th>
                       <th className="px-4 py-3">Fax</th>
-                      <th className="px-4 py-3">Équipements</th>
+                      <th className="hidden">Équipements</th>
                       <th className="px-4 py-3">Map</th>
                       <th className="px-4 py-3">Téléphone</th>
                       <th className="px-4 py-3">Code Postal</th>
@@ -964,10 +949,10 @@ export default function HotelsPage() {
                       <th className="px-4 py-3">Hôtel</th>
                       <th className="px-4 py-3">Emplacement</th>
                       <th className="px-4 py-3">Adresse</th>
-                      <th className="px-4 py-3">Attractions</th>
+                      <th className="hidden">Attractions</th>
                       <th className="px-4 py-3">Description</th>
                       <th className="px-4 py-3">Fax</th>
-                      <th className="px-4 py-3">Équipements</th>
+                      <th className="hidden">Équipements</th>
                       <th className="px-4 py-3">Map</th>
                       <th className="px-4 py-3">Téléphone</th>
                       <th className="px-4 py-3">Code Postal</th>
@@ -1026,3 +1011,4 @@ export default function HotelsPage() {
     </div>
   )
 }
+

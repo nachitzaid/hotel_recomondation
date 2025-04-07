@@ -1,22 +1,73 @@
 "use client"
 
-import Image from "next/image"
 import { Clock, Calendar, TrendingUp, ShieldCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
+import { useEffect, useState } from "react"
 
-interface BookingTime {
-  id: number
-  destination: string
-  bestMonth: string
-  savingsPercent: number
-  image: string
+interface Hotel {
+  id: string
+  HotelName: string
+  cityName: string
+  countyName: string
+  Description: string
+  HotelRating: string
+  Address: string
+  Attractions: string
+  FaxNumber: string
+  PhoneNumber: string
+  HotelWebsiteUrl: string
+  image?: string
+  price?: number
 }
 
-interface BookingTimesSectionProps {
-  bookingTimes: BookingTime[]
-}
+export default function BookingTimesSection() {
+  const [hotels, setHotels] = useState<Hotel[]>([])
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
 
-export default function BookingTimesSection({ bookingTimes }: BookingTimesSectionProps) {
+  useEffect(() => {
+    const fetchHotels = async () => {
+      try {
+        const res = await fetch("/api/hotels")
+        const data = await res.json()
+        console.log("Fetched data:", data) 
+
+        const formatted = data.slice(0, 3).map((hotel: any) => ({
+          id: hotel["_id"],
+          HotelName: hotel["HotelName"],
+          cityName: hotel["cityName"],
+          countyName: hotel["countyName"],
+          Description: hotel["Description"],
+          HotelRating: hotel["HotelRating"],
+          Address: hotel["Address"],
+          Attractions: hotel["Attractions"],
+          FaxNumber: hotel["FaxNumber"],
+          PhoneNumber: hotel["PhoneNumber"],
+          HotelWebsiteUrl: hotel["HotelWebsiteUrl"],
+          image: "https://tse2.mm.bing.net/th?id=OIP.L-TMYC1WSSBHkPOc4uDZtAHaEv&pid=Api&P=0&h=180",
+          price: Math.floor(Math.random() * (200 - 80 + 1)) + 80,
+        }))
+
+        setHotels(formatted)
+      } catch (error) {
+        console.error("Error fetching hotels:", error)
+      }
+    }
+
+    fetchHotels()
+  }, [])
+
+  const toggleDescription = (hotelId: string) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [hotelId]: !prev[hotelId],
+    }))
+  }
+
+  const truncateDescription = (text: string, maxLength = 100) => {
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + "..."
+  }
+
   return (
     <section className="mb-16 bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-xl">
       <div className="flex items-center mb-6">
@@ -25,23 +76,41 @@ export default function BookingTimesSection({ bookingTimes }: BookingTimesSectio
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {bookingTimes.map((item) => (
-          <Card key={item.id} className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-all">
+        {hotels.map((hotel) => (
+          <Card key={hotel.id} className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-all">
             <div className="h-32 w-full bg-gray-200 relative">
-              <Image src={item.image || "/placeholder.svg"} alt={item.destination} fill className="object-cover" />
+              <img
+                src={hotel.image || "/placeholder.svg"}
+                alt={hotel.HotelName}
+                className="object-cover w-full h-full"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                <h3 className="font-bold text-lg text-white">{item.destination}</h3>
+                <h3 className="font-bold text-lg text-white">{hotel.HotelName}</h3>
               </div>
             </div>
             <CardContent className="p-4">
               <div className="flex items-center mt-2 text-gray-700">
                 <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                <span className="font-medium">Meilleur moment: </span>
-                <span className="ml-2">{item.bestMonth}</span>
+                <span className="font-medium">Ville: </span>
+                <span className="ml-2">{hotel.cityName}</span>
               </div>
-              <div className="mt-3 bg-green-100 text-green-800 px-3 py-2 rounded-md flex items-center">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                <span>Économisez jusqu'à {item.savingsPercent}%</span>
+              <div className="mt-2 text-sm text-gray-600">
+                {expandedDescriptions[hotel.id] ? hotel.Description : truncateDescription(hotel.Description)}
+                {hotel.Description.length > 100 && (
+                  <button
+                    onClick={() => toggleDescription(hotel.id)}
+                    className="ml-1 text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {expandedDescriptions[hotel.id] ? "Voir moins" : "Voir plus"}
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 bg-green-100 text-green-800 px-3 py-2 rounded-md flex items-center justify-between">
+                <div className="flex items-center">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  <span>Hôtel: {hotel.HotelRating}</span>
+                </div>
+                <div className="font-semibold text-blue-600">à partir de {hotel.price} MAD</div>
               </div>
             </CardContent>
           </Card>
@@ -59,4 +128,3 @@ export default function BookingTimesSection({ bookingTimes }: BookingTimesSectio
     </section>
   )
 }
-

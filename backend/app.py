@@ -20,6 +20,17 @@ app = Flask(__name__)
 # Remplacez votre configuration CORS actuelle par celle-ci
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
+@app.route('/')
+def home():
+    return "Hotel Recommendation System is working!"
+
+@app.route('/recommendations/<hotel_name>')
+def recommend(hotel_name):
+    # Appel de la fonction pour obtenir les recommandations
+    recommendations = recommend_hotels(hotel_name)
+    return jsonify(recommendations)
+
+    
 # Configuration MongoDB
 def get_mongo_client(uri):
     try:
