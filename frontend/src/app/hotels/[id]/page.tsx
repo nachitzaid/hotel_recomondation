@@ -1,5 +1,5 @@
+import { Bath, Car, Coffee, Info, MapPin, Phone, Star, Utensils, Wifi } from "lucide-react"
 import { notFound } from "next/navigation"
-import { Star, MapPin, Phone, Info, Wifi, Coffee, Utensils, Car, Bath } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,9 +11,9 @@ type Hotel = {
   _id: string
   countyCode: string
   countyName: string
-  cityCode: number
+  cityCode: string // Changed from number to string
   cityName: string
-  HotelCode: number
+  HotelCode: string // Changed from number to string
   HotelName: string
   HotelRating: string
   Address: string
@@ -23,7 +23,7 @@ type Hotel = {
   HotelFacilities: string
   Map: string
   PhoneNumber: string
-  PinCode: number
+  PinCode: string // Changed from number to string
 }
 
 async function getHotelById(id: string): Promise<Hotel | null> {
@@ -38,7 +38,14 @@ async function getHotelById(id: string): Promise<Hotel | null> {
     }
 
     const data = await res.json()
-    return data
+    // Convert number fields to strings
+    const convertedData: Hotel = {
+      ...data,
+      cityCode: String(data.cityCode),
+      HotelCode: String(data.HotelCode),
+      PinCode: String(data.PinCode)
+    }
+    return convertedData
   } catch (error) {
     console.error("Error fetching hotel:", error)
     return null
@@ -53,7 +60,9 @@ export default async function HotelDetailsPage({ params }: { params: { id: strin
     return notFound()
   }
 
-  const cleanedHotel = Object.fromEntries(Object.entries(hotel).map(([key, value]) => [key.trim(), value]))
+  const cleanedHotel = Object.fromEntries(
+    Object.entries(hotel).map(([key, value]) => [key.trim(), typeof value === 'string' ? value.trim() : value])
+  ) as Hotel
 
   const rooms = [
     {
@@ -85,7 +94,7 @@ export default async function HotelDetailsPage({ params }: { params: { id: strin
   // Split facilities into an array for better display
   const facilities = cleanedHotel.HotelFacilities
     ? cleanedHotel.HotelFacilities.split(",")
-        .map((item) => item.trim())
+        .map((item: string) => item.trim())
         .filter(Boolean)
     : []
 
@@ -263,7 +272,7 @@ export default async function HotelDetailsPage({ params }: { params: { id: strin
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {facilities.length > 0 ? (
-                      facilities.map((facility, index) => (
+                      facilities.map((facility: string, index: number) => (
                         <div key={index} className="flex items-center gap-3 p-4 bg-gray-100 rounded-lg">
                           {index % 5 === 0 && <Wifi className="h-5 w-5 text-rose-600" />}
                           {index % 5 === 1 && <Coffee className="h-5 w-5 text-rose-600" />}

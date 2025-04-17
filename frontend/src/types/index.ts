@@ -123,21 +123,32 @@ export interface User {
   favorites?: string[];       // Array of hotel _ids
 }
 
-// Reservation types
 export interface Reservation {
-  _id: string;
-  userId: string;
-  hotelId: string;
-  checkIn: Date;
-  checkOut: Date;
-  guests: number;
-  totalPrice: number;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  paymentStatus: "pending" | "paid" | "refunded";
-  createdAt: Date;
-  updatedAt: Date;
-}
+  _id: string
+  userId: string
+  hotelId: string
+  roomType: string
+  checkIn: string  // ISO date string
+  checkOut: string // ISO date string
+  guests: number
+  rooms: number
+  totalAmount: number
+  status: "pending" | "confirmed" | "cancelled" | "completed"
+  paymentStatus: "pending" | "paid" | "refunded" | "failed"
+  specialRequests?: string
+  
+  // Métadonnées supplémentaires
+  hotelName?: string
+  userName?: string
+  userEmail?: string
+  createdAt?: string
+  updatedAt?: string
 
+  // Champs spécifiques à la Coupe du Monde
+  matchIds?: string[]
+  shuttleService?: boolean
+  packageId?: string
+}
 // Analytics data
 export interface HotelAnalytics {
   totalHotels: number;

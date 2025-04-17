@@ -1,423 +1,444 @@
 "use client"
 
-import type React from "react"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { format, addDays, differenceInDays } from "date-fns"
+import { fr } from "date-fns/locale"
+import { 
+  Calendar as CalendarIcon, 
+  Users, 
+  Plus, 
+  Minus, 
+  Loader2,
+  MapPin
+} from "lucide-react"
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
-import { CalendarIcon, CreditCard, Building, ArrowLeft, Users, CalendarDays, BedDouble } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
+
+import { HotelService } from "@/services/hotel-service"
+import { ReservationService } from "@/services/reservation-service"
+import { useAuth } from "@/hooks/use-auth"
 
 // Types
-interface Room {
-  type: string
+type Hotel = {
+  _id: string
+  HotelName: string
+  cityName: string
+  countyName: string
+  Description: string
   price: number
-  capacity: number
+  image?: string
 }
 
-interface Hotel {
-  id: string
-  name: string
-  location: string
-  image: string
-  rooms: Room[]
-}
-
-// Données simulées pour les hôtels
-const hotels: Hotel[] = [
-  {
-    id: "1",
-    name: "Grand Hôtel Paris",
-    location: "Paris, France",
-    image: "/placeholder.svg?height=200&width=300",
-    rooms: [
-      { type: "Chambre Standard", price: 250, capacity: 2 },
-      { type: "Chambre Deluxe", price: 350, capacity: 2 },
-      { type: "Suite Junior", price: 450, capacity: 3 },
-      { type: "Suite Présidentielle", price: 950, capacity: 4 },
-    ],
-  },
-  {
-    id: "2",
-    name: "Seaside Resort",
-    location: "Nice, France",
-    image: "/placeholder.svg?height=200&width=300",
-    rooms: [
-      { type: "Chambre Vue Jardin", price: 180, capacity: 2 },
-      { type: "Chambre Vue Mer", price: 220, capacity: 2 },
-      { type: "Suite Familiale", price: 320, capacity: 4 },
-      { type: "Villa Privée", price: 580, capacity: 6 },
-    ],
-  },
-  {
-    id: "3",
-    name: "Mountain Lodge",
-    location: "Chamonix, France",
-    image: "/placeholder.svg?height=200&width=300",
-    rooms: [
-      { type: "Chambre Alpine", price: 210, capacity: 2 },
-      { type: "Suite Panoramique", price: 310, capacity: 2 },
-      { type: "Chalet Familial", price: 410, capacity: 5 },
-      { type: "Penthouse", price: 610, capacity: 4 },
-    ],
-  },
-  {
-    id: "4",
-    name: "City Center Hotel",
-    location: "Lyon, France",
-    image: "/placeholder.svg?height=200&width=300",
-    rooms: [
-      { type: "Chambre Business", price: 150, capacity: 1 },
-      { type: "Chambre Supérieure", price: 180, capacity: 2 },
-      { type: "Suite Executive", price: 250, capacity: 2 },
-      { type: "Appartement", price: 320, capacity: 4 },
-    ],
-  },
-]
-
-export default function ReservationPage({ params }: { params: { id: string } }) {
+export default function ReservationPage() {
+  const params = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const roomType = searchParams.get("room")
+  const { toast } = useToast()
+  const { isAuthenticated } = useAuth()
 
-  const [date, setDate] = useState<Date | undefined>(new Date())
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() + 3)))
-  const [paymentMethod, setPaymentMethod] = useState("credit-card")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  // États pour la réservation
+  const [hotel, setHotel] = useState<Hotel | null>(null)
+  const [checkInDate, setCheckInDate] = useState<Date>(new Date())
+  const [checkOutDate, setCheckOutDate] = useState<Date>(addDays(new Date(), 3))
+  const [guests, setGuests] = useState(2)
+  const [rooms, setRooms] = useState(1)
+  const [specialRequests, setSpecialRequests] = useState("")
 
-  // Trouver l'hôtel correspondant à l'ID
-  const hotel = hotels.find((h) => h.id === params.id)
+  // États de disponibilité et de chargement
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAvailable, setIsAvailable] = useState(false)
+  const [availableRooms, setAvailableRooms] = useState(0)
+  const [totalPrice, setTotalPrice] = useState(0)
 
+  // Obtenir l'ID de l'hôtel depuis les paramètres d'URL
+  const hotelId = Array.isArray(params.id) ? params.id[0] : params.id
+
+  // Charger les détails de l'hôtel
+  useEffect(() => {
+    const fetchHotelDetails = async () => {
+      if (!hotelId) {
+        toast({
+          title: "Erreur",
+          description: "ID de l'hôtel manquant",
+          variant: "destructive"
+        })
+        router.push("/hotels")
+        return
+      }
+
+      try {
+        const hotelData = await HotelService.getHotelById(hotelId)
+        if (hotelData) {
+          setHotel(hotelData)
+          setIsLoading(false)
+        } else {
+          toast({
+            title: "Erreur",
+            description: "Hôtel non trouvé.",
+            variant: "destructive"
+          })
+          router.push("/hotels")
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des détails de l'hôtel:", error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les détails de l'hôtel.",
+          variant: "destructive"
+        })
+        setIsLoading(false)
+      }
+    }
+
+    fetchHotelDetails()
+  }, [hotelId, toast, router])
+
+  // Vérifier la disponibilité et calculer le prix
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!hotel || !hotelId) return
+
+      try {
+        const result = await ReservationService.checkAvailability(
+          hotelId,
+          format(checkInDate, 'yyyy-MM-dd'),
+          format(checkOutDate, 'yyyy-MM-dd'),
+          guests
+        )
+
+        setIsAvailable(result.available)
+        setAvailableRooms(result.rooms)
+
+        // Calculer le prix total
+        const calculatedPrice = ReservationService.calculatePrice(
+          checkInDate,
+          checkOutDate,
+          hotel.price || 100,
+          guests,
+          rooms
+        )
+        setTotalPrice(calculatedPrice)
+
+        // Afficher un toast si l'hôtel n'est pas disponible
+        if (!result.available) {
+          toast({
+            title: "Non disponible",
+            description: "Cet hôtel n'est pas disponible pour les dates sélectionnées.",
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        console.error("Erreur lors de la vérification de disponibilité:", error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de vérifier la disponibilité de l'hôtel.",
+          variant: "destructive"
+        })
+      }
+    }
+
+    // Vérifier la disponibilité si les dates sont valides
+    if (checkInDate && checkOutDate && checkOutDate > checkInDate) {
+      checkAvailability()
+    }
+  }, [checkInDate, checkOutDate, guests, hotelId, hotel, rooms, toast])
+
+  // Gestion de la soumission de la réservation
+  const handleReservation = async () => {
+    // Vérifier l'authentification
+    if (!isAuthenticated) {
+      toast({
+        title: "Connexion requise",
+        description: "Vous devez être connecté pour effectuer une réservation.",
+        variant: "destructive"
+      })
+      router.push("/login")
+      return
+    }
+
+    // Vérifier que l'ID de l'hôtel existe
+    if (!hotelId) {
+      toast({
+        title: "Erreur",
+        description: "ID de l'hôtel manquant",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Vérifier les dates
+    if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
+      toast({
+        title: "Dates invalides",
+        description: "Veuillez sélectionner des dates valides.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      // Vérifier la disponibilité
+      const availabilityResult = await ReservationService.checkAvailability(
+        hotelId,
+        format(checkInDate, 'yyyy-MM-dd'),
+        format(checkOutDate, 'yyyy-MM-dd'),
+        guests
+      )
+
+      // Vérifier si l'hôtel est disponible
+      if (!availabilityResult.available) {
+        toast({
+          title: "Non disponible",
+          description: "Cet hôtel n'est pas disponible pour les dates sélectionnées.",
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Calculer le prix total
+      const calculatedPrice = ReservationService.calculatePrice(
+        checkInDate, 
+        checkOutDate, 
+        hotel?.price || 100, 
+        guests, 
+        rooms
+      )
+
+      // Préparer les données de réservation
+      const reservationData = {
+        hotelId: hotelId,
+        checkIn: format(checkInDate, 'yyyy-MM-dd'),
+        checkOut: format(checkOutDate, 'yyyy-MM-dd'),
+        guests,
+        rooms,
+        totalPrice: calculatedPrice,
+        specialRequests: specialRequests || undefined
+      }
+
+      // Créer la réservation
+      const reservation = await ReservationService.createReservation(reservationData)
+      
+      // Afficher un message de succès
+      toast({
+        title: "Réservation confirmée",
+        description: "Votre réservation a été enregistrée avec succès.",
+      })
+
+      // Rediriger vers la page de confirmation de réservation
+      router.push(`/reservations/${reservation.id}`)
+
+    } catch (error) {
+      // Gérer les erreurs de réservation
+      console.error("Erreur lors de la réservation :", error)
+      
+      toast({
+        title: "Erreur de réservation",
+        description: "Impossible de créer la réservation. Veuillez réessayer.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Calcul du nombre de nuits
+  const nights = checkOutDate && checkInDate 
+    ? differenceInDays(checkOutDate, checkInDate) 
+    : 0
+
+  // Affichage du chargement si les détails de l'hôtel sont en cours de chargement
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // Vérifier si l'hôtel existe
   if (!hotel) {
-    return <div className="container mx-auto py-8 text-center">Hôtel non trouvé</div>
-  }
-
-  // Trouver la chambre sélectionnée
-  const selectedRoom = hotel.rooms.find((r) => r.type === roomType)
-
-  if (!selectedRoom) {
-    return <div className="container mx-auto py-8 text-center">Chambre non trouvée</div>
-  }
-
-  // Calculer le nombre de nuits
-  const nights = endDate && date ? Math.ceil((endDate.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)) : 0
-
-  // Calculer le prix total
-  const totalPrice = selectedRoom.price * nights
-  const taxesAndFees = totalPrice * 0.1 // 10% de taxes et frais
-  const grandTotal = totalPrice + taxesAndFees
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    // Simuler une requête API
-    setTimeout(() => {
-      setIsSubmitting(false)
-      // Rediriger vers une page de confirmation
-      router.push(`/hotels/${params.id}/reservation/confirmation`)
-    }, 1500)
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Hôtel introuvable</p>
+      </div>
+    )
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <Link href={`/hotels/${params.id}`} className="text-blue-600 hover:underline mb-4 inline-flex items-center">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour aux détails de l'hôtel
-        </Link>
-        <h1 className="text-3xl font-bold mb-2">Réservation</h1>
-        <p className="text-gray-600">Complétez les informations ci-dessous pour finaliser votre réservation.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit}>
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Building className="mr-2 h-5 w-5" />
-                  Détails du séjour
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="check-in">Date d'arrivée</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal mt-1"
-                          id="check-in"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {date ? format(date, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={setDate}
-                          initialFocus
-                          locale={fr}
-                          disabled={(date) => date < new Date()}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="flex-1">
-                    <Label htmlFor="check-out">Date de départ</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal mt-1"
-                          id="check-out"
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, "PPP", { locale: fr }) : <span>Choisir une date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          initialFocus
-                          locale={fr}
-                          disabled={(date) => date <= (date || new Date())}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="guests">Nombre de voyageurs</Label>
-                  <div className="flex items-center mt-1">
-                    <Users className="mr-2 h-4 w-4 text-gray-500" />
-                    <Input
-                      type="number"
-                      id="guests"
-                      defaultValue={2}
-                      min={1}
-                      max={selectedRoom.capacity}
-                      className="w-20"
-                    />
-                    <span className="ml-2 text-sm text-gray-500">
-                      (Max: {selectedRoom.capacity} {selectedRoom.capacity > 1 ? "personnes" : "personne"})
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center p-3 bg-blue-50 rounded-md">
-                  <BedDouble className="h-5 w-5 text-blue-600 mr-2" />
-                  <div>
-                    <p className="font-medium">{selectedRoom.type}</p>
-                    <p className="text-sm text-gray-600">
-                      {selectedRoom.price}€ / nuit • Capacité: {selectedRoom.capacity}{" "}
-                      {selectedRoom.capacity > 1 ? "personnes" : "personne"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="mr-2 h-5 w-5" />
-                  Informations personnelles
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="first-name">Prénom</Label>
-                    <Input id="first-name" placeholder="Votre prénom" required className="mt-1" />
-                  </div>
-                  <div>
-                    <Label htmlFor="last-name">Nom</Label>
-                    <Input id="last-name" placeholder="Votre nom" required className="mt-1" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="votre@email.com" required className="mt-1" />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Téléphone</Label>
-                    <Input id="phone" placeholder="+33 6 12 34 56 78" required className="mt-1" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="special-requests">Demandes spéciales (optionnel)</Label>
-                  <textarea
-                    id="special-requests"
-                    className="w-full mt-1 p-2 border border-gray-300 rounded-md"
-                    rows={3}
-                    placeholder="Informez-nous de toute demande particulière..."
-                  ></textarea>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <CreditCard className="mr-2 h-5 w-5" />
-                  Paiement
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="credit-card" id="credit-card" />
-                    <Label htmlFor="credit-card">Carte de crédit</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="paypal" id="paypal" />
-                    <Label htmlFor="paypal">PayPal</Label>
-                  </div>
-                </RadioGroup>
-
-                {paymentMethod === "credit-card" && (
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <Label htmlFor="card-number">Numéro de carte</Label>
-                      <Input id="card-number" placeholder="1234 5678 9012 3456" required className="mt-1" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="expiry">Date d'expiration</Label>
-                        <Input id="expiry" placeholder="MM/AA" required className="mt-1" />
-                      </div>
-                      <div>
-                        <Label htmlFor="cvc">CVC</Label>
-                        <Input id="cvc" placeholder="123" required className="mt-1" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="card-name">Nom sur la carte</Label>
-                      <Input id="card-name" placeholder="J. DUPONT" required className="mt-1" />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center space-x-2 mt-4">
-                  <Checkbox id="terms" required />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    J'accepte les{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      conditions générales
-                    </a>{" "}
-                    et la{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      politique de confidentialité
-                    </a>
-                  </label>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Traitement en cours..." : "Confirmer la réservation"}
-                </Button>
-              </CardFooter>
-            </Card>
-          </form>
-        </div>
-
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Informations de l'hôtel */}
         <div>
-          <Card className="sticky top-8">
-            <CardHeader>
-              <CardTitle>Résumé de la réservation</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-md overflow-hidden">
-                  <img
-                    src={hotel.image || "/placeholder.svg"}
-                    alt={hotel.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-bold">{hotel.name}</h3>
-                  <p className="text-sm text-gray-600">{hotel.location}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-gray-500" />
-                  <span className="text-sm">
-                    {date && endDate
-                      ? `${format(date, "d MMMM", { locale: fr })} - ${format(endDate, "d MMMM yyyy", {
-                          locale: fr,
-                        })}`
-                      : "Dates non sélectionnées"}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <BedDouble className="h-4 w-4 mr-2 text-gray-500" />
-                  <span className="text-sm">{selectedRoom.type}</span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="h-4 w-4 mr-2 text-gray-500" />
-                  <span className="text-sm">2 adultes</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>
-                    {selectedRoom.price}€ x {nights} nuits
-                  </span>
-                  <span>{totalPrice}€</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Taxes et frais</span>
-                  <span>{taxesAndFees.toFixed(2)}€</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>{grandTotal.toFixed(2)}€</span>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-3 rounded-md text-sm">
-                <p className="font-medium text-blue-800">Politique d'annulation</p>
-                <p className="text-blue-700 mt-1">
-                  Annulation gratuite jusqu'à 24 heures avant l'arrivée. Après cette période, des frais peuvent
-                  s'appliquer.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <img 
+            src={hotel.image || "/placeholder.svg"} 
+            alt={hotel.HotelName} 
+            className="w-full h-64 object-cover rounded-lg mb-6"
+          />
+          <h1 className="text-2xl font-bold mb-2">{hotel.HotelName}</h1>
+          <div className="flex items-center text-gray-600 mb-4">
+            <MapPin className="h-5 w-5 mr-2" />
+            <span>{hotel.cityName}, {hotel.countyName}</span>
+          </div>
+          <p className="text-gray-700 mb-4">{hotel.Description}</p>
         </div>
+
+        {/* Formulaire de réservation */}
+        <Card className="border-2 border-primary/10 shadow-lg">
+          <CardContent className="p-6 space-y-6">
+            {/* Dates de séjour */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Date d'arrivée</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {checkInDate ? format(checkInDate, 'PPP', { locale: fr }) : <span>Choisir une date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={checkInDate}
+                      onSelect={(date) => date && setCheckInDate(date)}
+                      initialFocus
+                      locale={fr}
+                      disabled={(date) => date < new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Date de départ</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {checkOutDate ? format(checkOutDate, 'PPP', { locale: fr }) : <span>Choisir une date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={checkOutDate}
+                      onSelect={(date) => date && setCheckOutDate(date)}
+                      initialFocus
+                      locale={fr}
+                      disabled={(date) => date <= checkInDate}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* Voyageurs et chambres */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Voyageurs</Label>
+                <div className="flex items-center">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setGuests(Math.max(1, guests - 1))}
+                    disabled={guests <= 1}
+                    className="h-8 w-8"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="mx-4 font-medium">{guests}</span>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setGuests(Math.min(rooms * 4, guests + 1))}
+                    disabled={guests >= rooms * 4}
+                    className="h-8 w-8"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Chambres</Label>
+                <div className="flex items-center">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      const newRooms = Math.max(1, rooms - 1)
+                      setRooms(newRooms)
+                      // Ajuster le nombre de voyageurs si nécessaire
+                      setGuests(Math.min(guests, newRooms * 4))
+                    }}
+                    disabled={rooms <= 1}
+                    className="h-8 w-8"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="mx-4 font-medium">{rooms}</span>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setRooms(Math.min(availableRooms || 5, rooms + 1))}
+                    disabled={rooms >= (availableRooms || 5)}
+                    className="h-8 w-8"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Demandes spéciales */}
+            <div className="space-y-2">
+              <Label>Demandes spéciales</Label>
+              <Textarea
+                placeholder="Avez-vous des demandes particulières pour votre séjour ?"
+                value={specialRequests}
+                onChange={(e) => setSpecialRequests(e.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </div>
+          </CardContent>
+
+          <Separator className="my-2" />
+
+          <CardFooter className="p-6">
+            <div className="w-full space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Prix par nuit</span>
+                <span className="font-medium">{hotel.price} €</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">{nights} nuit(s)</span>
+                <span className="font-medium">{hotel.price * nights} €</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span>{totalPrice} €</span>
+              </div>
+              <Button 
+                className="w-full mt-4" 
+                onClick={handleReservation}
+                disabled={!isAvailable}
+              >
+                Réserver maintenant
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   )
 }
-

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// Correction des importations pour utiliser les composants existants
+
 import HotelDashboardHeader from "@/components/home/HotelDashboardHeader"
 // Nous utiliserons le footer directement dans ce fichier pour l'instant
 
@@ -73,12 +73,6 @@ export default function HomePage() {
       <WorldCupBanner hostCountries={hostCountries} />
 
       <main className="container mx-auto py-16 px-4">
-        <HotDealsSection
-          hotDeals={hotDeals}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onViewDetails={handleViewDetails}
-        />
 
         <BookingTimesSection bookingTimes={bookingTimes} />
 

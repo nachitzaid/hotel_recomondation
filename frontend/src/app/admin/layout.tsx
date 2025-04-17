@@ -80,11 +80,6 @@ export default function AdminLayout({
       title: "Utilisateurs",
       href: "/admin/users",
     },
-    {
-      icon: <CreditCard size={20} />,
-      title: "Paiements",
-      href: "/admin/payments",
-    },
   ]
 
   // Utiliser l'email exact sans valeur par défaut
